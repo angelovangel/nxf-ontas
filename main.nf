@@ -2,6 +2,7 @@
 * PARAMS
 */
 
+
 params.pod5 = "${projectDir}/data/pod5"
 params.asfile = "${projectDir}/data/as_decisions.csv"
 params.model = "fast"
@@ -61,18 +62,18 @@ process DORADO_ALIGN {
     container 'docker.io/nanoporetech/dorado:latest'
 
     publishDir "${params.outdir}/01-align", mode: 'copy', pattern: '*{bam,bai}'
+    tag "${reads.simpleName}"
 
     input:
-        path ref 
-        path reads
+        tuple path(ref), path(reads)
 
     output:
-        tuple path('align.bam'), path('align.bam.bai')
+        path("*.{bam,bai}")
 
     script:
     """
-    dorado aligner ${ref} ${reads} | samtools sort -o align.bam
-    samtools index align.bam
+    dorado aligner ${ref} ${reads} | samtools sort -o ${reads.simpleName}.align.bam
+    samtools index ${reads.simpleName}.align.bam
     """
 }
 
@@ -80,23 +81,40 @@ process DORADO_ALIGN {
 process SAMTOOLS_BEDCOV {
     container 'docker.io/aangeloo/nxf-tgs:latest'
 
-    publishDir "${params.outdir}/03-coverage", mode: 'copy', pattern: '*tsv'
+    publishDir "${params.outdir}/02-coverage", mode: 'copy', pattern: '*tsv'
 
     input:
-        path bed
-        tuple path(bam), path(bai)
+        tuple path(bam), path(bai), path(bed)
 
     output:
-        path "coverage.tsv"
+        path "*coverage.tsv"
 
     script:
     """
-    echo -e "chr\tstart\tend\tlabel\tbases\tregion_len\tcoverage" > coverage.tsv
+    echo -e "chr\tstart\tend\tlabel\tbases\tregion_len\tcoverage" > ${bam.simpleName}.coverage.tsv
     samtools bedcov ${bed} ${bam} | awk '{
         region_length = \$3 - \$2
         coverage = (\$5 / region_length)
         print \$0 "\t" region_length "\t" coverage
-    }' >> coverage.tsv
+    }' >> ${bam.simpleName}.coverage.tsv
+    """
+}
+
+// REPORT
+
+process REPORT {
+    container 'docker.io/aangeloo/nxf-tgs:latest'
+
+    publishDir "${params.outdir}/03-report", mode: 'copy', pattern: '*html'
+    
+    input:
+        path coverage_tsv
+    output:
+        path "*.html"
+
+    script:
+    """
+    generate-report.R
     """
 }
 
@@ -116,17 +134,31 @@ workflow basecall {
 
 workflow {
     
+    // If 'reads' parameter is provided create a 
+    // channel from that path.
+    // also possible to pass a folder with reads, every read is one sample
     if (params.reads) {
-        // If 'reads_bam' parameter is provided
-        // create a channel from that path.
-        ch_reads = Channel.fromPath(params.reads, checkIfExists: true)
+        
+        if ( file(params.reads).isDirectory() ) {
+            pattern = "*.{bam,fastq,fastq.gz,fq,fq.gz}"
+            ch_reads = Channel.fromPath(params.reads + "/" + pattern, type: 'file', checkIfExists: true)
+            
+        } else {
+            ch_reads = Channel.fromPath(params.reads, checkIfExists: true)        
+        }
     } else {
         // Otherwise, source the channel from the 'basecall' workflow's output.
         ch_reads = basecall().ch_bc
     }
     
+    ch_ref \
+    .combine( ch_reads ) \
+    | DORADO_ALIGN \
+    | combine( Channel.fromPath(params.bedfile, checkIfExists: true) ) \
+    | SAMTOOLS_BEDCOV \
     
-    DORADO_ALIGN(ch_ref, ch_reads)
-    SAMTOOLS_BEDCOV(params.bedfile, DORADO_ALIGN.out)
+    SAMTOOLS_BEDCOV.out
+    .collect()
+    | REPORT
 }
 

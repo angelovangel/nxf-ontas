@@ -3,3 +3,5 @@ work
 .nextflow*
 results
 .DS_Store
+testdata
+
