@@ -10,7 +10,15 @@ params.reference = "${projectDir}/data/ref.fasta"
 params.bedfile = "${projectDir}/data/regions.bed"
 params.outdir = "results"
 
-params.reads = null // Parameter for reads when -entry align is used
+params.reads = null // Parameter for reads when basecalling is skipped
+
+// barcoded case
+params.kit = null
+params.samplesheet = null
+
+if (params.kit && !params.samplesheet) {
+    error "If --kit is specified, --samplesheet must also be provided."
+}
 
 // BASECALL
 
@@ -69,7 +77,7 @@ process DORADO_ALIGN {
 }
 
 // STATS
-process SAMTOOLS_COV {
+process SAMTOOLS_BEDCOV {
     container 'docker.io/aangeloo/nxf-tgs:latest'
 
     publishDir "${params.outdir}/03-coverage", mode: 'copy', pattern: '*tsv'
@@ -83,16 +91,17 @@ process SAMTOOLS_COV {
 
     script:
     """
-    echo -e "chr\tstart\tend\tlabel\tbases\tcoverage" > coverage.tsv
+    echo -e "chr\tstart\tend\tlabel\tbases\tregion_len\tcoverage" > coverage.tsv
     samtools bedcov ${bed} ${bam} | awk '{
         region_length = \$3 - \$2
         coverage = (\$5 / region_length)
-        print \$0 "\t" coverage
+        print \$0 "\t" region_length "\t" coverage
     }' >> coverage.tsv
     """
 }
 
 ch_ref = Channel.fromPath(params.reference, checkIfExists: true)
+ch_samplesheet = params.samplesheet ? Channel.fromPath(params.samplesheet, checkIfExists: true) : null
 
 workflow basecall {
     ch_pod5 = Channel.fromPath(params.pod5, checkIfExists: true)
@@ -105,10 +114,10 @@ workflow basecall {
     ch_bc = DORADO_BASECALL.out
 }
 
-workflow align {
+workflow {
     
-    if (params.reads_bam) {
-        // If 'reads_bam' parameter is provided (e.g., via -entry align ... --reads <path>),
+    if (params.reads) {
+        // If 'reads_bam' parameter is provided
         // create a channel from that path.
         ch_reads = Channel.fromPath(params.reads, checkIfExists: true)
     } else {
@@ -116,14 +125,8 @@ workflow align {
         ch_reads = basecall().ch_bc
     }
     
-    main:
+    
     DORADO_ALIGN(ch_ref, ch_reads)
-
-    emit:
-    ch_align = DORADO_ALIGN.out
+    SAMTOOLS_BEDCOV(params.bedfile, DORADO_ALIGN.out)
 }
 
-workflow {
-    align_out = align()
-    SAMTOOLS_COV(params.bedfile, align.out.ch_align)
-}
