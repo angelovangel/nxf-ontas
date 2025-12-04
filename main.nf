@@ -3,7 +3,7 @@
 */
 
 
-params.pod5 = "${projectDir}/data/pod5"
+params.pod5 = "${projectDir}/data/pod5-demux"
 params.asfile = "${projectDir}/data/as_decisions.csv"
 params.model = "fast"
 
@@ -15,7 +15,7 @@ params.reads = null // Parameter for reads when basecalling is skipped
 
 // barcoded case
 params.kit = null
-params.samplesheet = null
+params.samplesheet = null //csv with columns minimum sample,barcode
 
 if (params.kit && !params.samplesheet) {
     error "If --kit is specified, --samplesheet must also be provided."
@@ -56,7 +56,45 @@ process DORADO_BASECALL {
     """
 }
 
-// ALIGN
+process DORADO_BASECALL_BARCODING {
+
+    //container 'docker.io/nanoporetech/dorado:latest'
+
+    publishDir "${params.outdir}/00-basecall", mode: 'copy'
+
+    input:
+        path decisionfile
+        path pod5
+
+    output:
+        path "bam_pass", type: 'dir', emit: ch_bam_pass
+
+    script:
+    """
+    dorado basecaller --kit-name ${params.kit} -o basecall-${params.model} ${params.model} ${pod5}
+    # the folder with barcodes is basecall-sup/folder1/folder2/folder3/bam_pass
+    ln -s basecall-${params.model}/*/*/*/bam_pass bam_pass
+    """
+}
+
+process MERGE_READS {
+    container 'docker.io/aangeloo/nxf-tgs:latest'
+    errorStrategy 'ignore' //because some barcodes defined in the samplesheet might be missing in the data
+    
+    publishDir "$params.outdir/00-basecall/processed", mode: 'copy', pattern: '*{fastq.gz,fastq,bam}'
+
+    input:
+    tuple val(samplename), val(barcode), path(bam_pass)
+    
+    output: 
+    path('*{fastq.gz,fastq,bam}')
+    
+    script:
+    """
+    samtools cat ${bam_pass}/${barcode}/*.bam > ${samplename}.bam
+    """
+}
+
 process DORADO_ALIGN {
 
     container 'docker.io/nanoporetech/dorado:latest'
@@ -77,44 +115,63 @@ process DORADO_ALIGN {
     """
 }
 
-// STATS
 process SAMTOOLS_BEDCOV {
     container 'docker.io/aangeloo/nxf-tgs:latest'
 
-    publishDir "${params.outdir}/02-coverage", mode: 'copy', pattern: '*tsv'
+    publishDir "${params.outdir}/02-coverage", mode: 'copy', pattern: '*cov.tsv'
+    tag "${bam.simpleName}"
 
     input:
         tuple path(bam), path(bai), path(bed)
 
     output:
-        path "*coverage.tsv"
+        path "*cov.tsv"
 
     script:
     """
-    echo -e "chr\tstart\tend\tlabel\tbases\tregion_len\tcoverage" > ${bam.simpleName}.coverage.tsv
+    echo -e "chr\tstart\tend\tlabel\tbases\tregion_len\tcoverage" > ${bam.simpleName}.cov.tsv
     samtools bedcov ${bed} ${bam} | awk '{
         region_length = \$3 - \$2
         coverage = (\$5 / region_length)
         print \$0 "\t" region_length "\t" coverage
-    }' >> ${bam.simpleName}.coverage.tsv
+    }' >> ${bam.simpleName}.cov.tsv
     """
 }
 
-// REPORT
+process BEDTOOLS_COV {
+    container 'docker.io/biocontainers/bedtools:v2.27.1dfsg-4-deb_cv1'
+
+    publishDir "${params.outdir}/02-coverage", mode: 'copy', pattern: '*hist.tsv'
+    tag "${bam.simpleName}"
+
+    input:
+        tuple path(bam), path(bai), path(bed)
+
+    output:
+        path "*hist.tsv"
+
+    script:
+    """
+    echo -e "chr\tstart\tend\tlabel\tdepth\tbases_at_depth\tsize\tpercent_at_depth" > ${bam.simpleName}.hist.tsv
+    bedtools coverage -a ${bed} -b ${bam} -hist >> ${bam.simpleName}.hist.tsv
+    """
+}
+
 
 process REPORT {
     container 'docker.io/aangeloo/nxf-tgs:latest'
 
-    publishDir "${params.outdir}/03-report", mode: 'copy', pattern: '*html'
+    publishDir "${params.outdir}", mode: 'copy', pattern: '*html'
     
     input:
-        path coverage_tsv
+        path bedtools_hist
     output:
         path "*.html"
 
     script:
     """
-    generate-report.R
+    
+    bedtools-report.py $bedtools_hist -o report.html
     """
 }
 
@@ -125,11 +182,21 @@ workflow basecall {
     ch_pod5 = Channel.fromPath(params.pod5, checkIfExists: true)
     ch_decisionfile = Channel.fromPath(params.asfile, checkIfExists: true)
     
-    main:
-    DORADO_BASECALL(ch_decisionfile, ch_pod5)
-
+    if (params.kit) {
+        DORADO_BASECALL_BARCODING(ch_decisionfile, ch_pod5)  
+        
+        ch_samplesheet
+        .splitCsv(header:true)
+        .filter{ it -> it.barcode =~ /^barcode*/ }
+        .map { row -> tuple( row.sample, row.barcode ) }
+        .combine( DORADO_BASECALL_BARCODING.out.ch_bam_pass )
+        | MERGE_READS 
+    } else {
+        DORADO_BASECALL(ch_decisionfile, ch_pod5)
+    }
+    
     emit: 
-    ch_bc = DORADO_BASECALL.out
+    ch_bc = params.kit ? MERGE_READS.out : DORADO_BASECALL.out
 }
 
 workflow {
@@ -147,18 +214,21 @@ workflow {
             ch_reads = Channel.fromPath(params.reads, checkIfExists: true)        
         }
     } else {
-        // Otherwise, source the channel from the 'basecall' workflow's output.
+        // Otherwise, source the channel from the 'basecall' (or basecall + merge_reads) workflow's output.
         ch_reads = basecall().ch_bc
     }
     
     ch_ref \
     .combine( ch_reads ) \
+    //.view()
     | DORADO_ALIGN \
     | combine( Channel.fromPath(params.bedfile, checkIfExists: true) ) \
-    | SAMTOOLS_BEDCOV \
+    | (SAMTOOLS_BEDCOV & BEDTOOLS_COV) \
     
-    SAMTOOLS_BEDCOV.out
+    
+    BEDTOOLS_COV.out
     .collect()
     | REPORT
+    
 }
 

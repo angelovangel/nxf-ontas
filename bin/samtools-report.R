@@ -18,8 +18,8 @@ df <- vroom(files, delim = "\t", id = 'file') %>%
 summary_df <- df %>%
   group_by(file) %>%
   summarise(
-    Total_Bases_Ontarget = sum(bases, na.rm = T),
-    Avg_Target_CovX = ifelse(sum(region_len) > 0, Total_Bases_Ontarget / sum(region_len, na.rm = T), 0)
+    Bases_Ontarget = sum(bases, na.rm = T),
+    Avg_Target_CovX = ifelse(sum(region_len) > 0, Bases_Ontarget / sum(region_len, na.rm = T), 0)
   )
     
 # Define column specifications for formatting and alignment
@@ -30,15 +30,15 @@ columns_def <- list(
         # Ensure the column doesn't get treated as a number
         format = colFormat(digits = 0),
     ),
-    Total_Bases_Ontarget = colDef(
-        name = "Total bases on target",
+    Bases_Ontarget = colDef(
+        name = "Bases on target",
         align = "right",
         # Format as integer with comma separator
         format = colFormat(separators = TRUE, digits = 0),
         style = list(fontFamily = "monospace")
     ),
     Avg_Target_CovX = colDef(
-        name = "Avg. coverage (X)",
+        name = "Avg. target coverage",
         align = "right",
         # Format as number with two decimal places
         format = colFormat(digits = 2),
