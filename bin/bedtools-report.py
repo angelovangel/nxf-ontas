@@ -84,7 +84,7 @@ def generate_html_report(samples_data, output_file):
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Coverage Histogram Report</title>
+  <title>NXF-ONTAS Coverage Report</title>
   
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
   
@@ -97,7 +97,7 @@ def generate_html_report(samples_data, output_file):
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
       background: #f5f5f5;
       min-height: 100vh;
-      padding: 20px;
+      padding: 10px;
     }}
     .container {{
       max-width: 1800px;
@@ -108,14 +108,21 @@ def generate_html_report(samples_data, output_file):
       overflow: hidden;
     }}
     .header {{
-      background: #60a5fa;
+      /* Header color: Dark Gray/Blue */
+      background: #374151; 
       color: white;
-      padding: 20px;
+      padding: 8px 10px; 
       text-align: center;
     }}
-    .header h1 {{ font-size: 1.5em; margin-bottom: 5px; }}
-    .header p {{ opacity: 0.9; font-size: 0.9em; }}
-    .content {{ padding: 20px; }}
+    .header h2 {{ 
+      font-size: 1.2em; 
+      margin-bottom: 2px; 
+    }}
+    .header p {{ 
+      opacity: 0.9; 
+      font-size: 0.8em; 
+    }}
+    .content {{ padding: 10px; }}
     .stats {{
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -123,14 +130,18 @@ def generate_html_report(samples_data, output_file):
       margin-bottom: 20px;
     }}
     .stat-card {{
-      background: #60a5fa;
+      /* CHANGED: Use header color */
+      background: #374151; 
       color: white;
-      padding: 15px;
+      padding: 10px; /* CHANGED: Reduced padding for smaller size */
       border-radius: 8px;
       text-align: center;
     }}
     .stat-card h3 {{ font-size: 0.8em; opacity: 0.9; margin-bottom: 3px; }}
-    .stat-card .value {{ font-size: 1.5em; font-weight: bold; }}
+    .stat-card .value {{ 
+      font-size: 1.2em; /* CHANGED: Reduced font size */
+      font-weight: bold; 
+    }}
     .controls {{
       display: flex;
       gap: 20px;
@@ -218,9 +229,10 @@ def generate_html_report(samples_data, output_file):
       text-align: right;
     }}
     .pct-bar {{
+      /* Kept secondary blue accent for data visualization contrast */
       display: inline-block;
       height: 16px;
-      background: #60a5fa;
+      background: #60a5fa; 
       border-radius: 2px;
       min-width: 2px;
       vertical-align: middle;
@@ -231,7 +243,8 @@ def generate_html_report(samples_data, output_file):
       background: #f8fafc;
     }}
     .export-btn {{
-      background: #60a5fa;
+      /* CHANGED: Use header color */
+      background: #374151; 
       color: white;
       border: none;
       padding: 10px 20px;
@@ -242,7 +255,8 @@ def generate_html_report(samples_data, output_file):
       white-space: nowrap; 
     }}
     .export-btn:hover {{
-      background: #3b82f6;
+      /* CHANGED: Darker shade of header color for hover */
+      background: #1f2937;
     }}
     th.sortable {{
       cursor: pointer;
@@ -273,7 +287,7 @@ def generate_html_report(samples_data, output_file):
 <body>
   <div class="container">
     <div class="header">
-      <h1>Coverage Histogram Report</h1>
+      <h2>NXF-ONTAS Coverage Report</h2>
       <p>Generated on {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
     </div>
     <div class="content">
@@ -287,20 +301,20 @@ def generate_html_report(samples_data, output_file):
           <div class="value">{len(samples_data)}</div>
         </div>
         <div class="stat-card">
-          <h3>Total Bases Analyzed</h3>
+          <h3>Total BED size</h3>
           <div class="value">{sum(region_totals.values()):,}</div>
         </div>
       </div>
       
       <div class="controls">
         <div class="filter-group">
-          <label for="sampleFilter" class="filter-label">Filter Samples (Select/Search)</label>
+          
           <select id="sampleFilter" multiple="multiple" style="width: 100%;">
             {sample_options}
           </select>
         </div>
         <div class="filter-group">
-          <label for="regionFilter" class="filter-label">Filter Regions (Select/Search)</label>
+
           <select id="regionFilter" multiple="multiple" style="width: 100%;">
             {region_options}
           </select>
@@ -315,9 +329,9 @@ def generate_html_report(samples_data, output_file):
               <th rowspan="2" class="sortable" onclick="sortTable(0)">Sample</th>
               <th rowspan="2" class="sortable" onclick="sortTable(1)">Chr</th>
               <th rowspan="2" class="sortable" onclick="sortTable(2)">Gene/Region</th>
-              <th rowspan="2" class="sortable" onclick="sortTable(3)">Location</th>
-              <th rowspan="2" class="sortable" onclick="sortTable(4)">Total Bases</th>
-              <th colspan="4" style="text-align: center; border-bottom: 1px solid #cbd5e1;">Cumulative Coverage</th>
+              <th rowspan="2">Location</th>
+              <th rowspan="2" class="sortable" onclick="sortTable(4)">Region size</th>
+              <th colspan="4" style="text-align: center; border-bottom: 1px solid #cbd5e1;">Percentage of region with at least X coverage</th>
             </tr>
             <tr>
               <th class="sortable" onclick="sortTable(5)" style="text-align: right;">≥1x (%)</th>
@@ -418,7 +432,7 @@ def generate_html_report(samples_data, output_file):
         'Chr', 
         'Gene/Region', 
         'Location', 
-        'Total Bases', 
+        'Region Size', 
         'Pct_Ge_1x', 
         'Pct_Ge_10x', 
         'Pct_Ge_20x', 
@@ -462,7 +476,7 @@ def generate_html_report(samples_data, output_file):
       const link = document.createElement('a');
       const url = URL.createObjectURL(blob);
       link.setAttribute('href', url);
-      link.setAttribute('download', 'coverage_report_' + new Date().getTime() + '.csv');
+      link.setAttribute('download', 'coverage_report_export' + '.csv');
       link.style.visibility = 'hidden';
       document.body.appendChild(link);
       link.click();
@@ -503,7 +517,7 @@ def generate_html_report(samples_data, output_file):
           const bLoc = b.getAttribute('data-location').split('-')[0].replace(/,/g, '');
           aVal = parseInt(aLoc);
           bVal = parseInt(bLoc);
-        } else if (columnIndex === 4) { // Total Bases
+        } else if (columnIndex === 4) { // Region Size
           aVal = parseFloat(a.getAttribute('data-total'));
           bVal = parseFloat(b.getAttribute('data-total'));
         } else if (columnIndex === 5) { // ≥1x

@@ -1,21 +1,5 @@
-/*
-* PARAMS
-*/
 
 
-params.pod5 = "${projectDir}/data/pod5-demux"
-params.asfile = "${projectDir}/data/as_decisions.csv"
-params.model = "fast"
-
-params.reference = "${projectDir}/data/ref.fasta"
-params.bedfile = "${projectDir}/data/regions.bed"
-params.outdir = "results"
-
-params.reads = null // Parameter for reads when basecalling is skipped
-
-// barcoded case
-params.kit = null
-params.samplesheet = null //csv with columns minimum sample,barcode
 
 if (params.kit && !params.samplesheet) {
     error "If --kit is specified, --samplesheet must also be provided."
@@ -28,7 +12,7 @@ process DORADO_BASECALL {
     //container 'docker.io/nanoporetech/dorado:latest'
 
     publishDir "${params.outdir}/00-basecall", mode: 'copy'
-
+    tag "${params.asfile ? 'with' : 'no'} adaptive sampling"
     input:
         path decisionfile
         path pod5
@@ -37,16 +21,20 @@ process DORADO_BASECALL {
         path "reads.bam"
 
     script:
+    def readids = params.asfile ? "--read-ids accepted_reads.txt" : ""
     """
-    awk -F',' '\$2 == "sequence"' '$decisionfile' | cut -f1 -d, > accepted_reads.txt
-    nreads_accept=\$(wc -l < accepted_reads.txt)
-    nreads_total=\$(wc -l < '$decisionfile')
-    echo -e "Found \$nreads_accept out of \$nreads_total reads to basecall " 
-
-    dorado basecaller -l accepted_reads.txt ${params.model} ${pod5} > reads.bam
+    if [ "$decisionfile" != "EMPTY" ]; then
+        echo "asfile provided, proceeding to basecall filtered reads."
+        awk -F',' '\$2 == "sequence"' '$decisionfile' | cut -f1 -d, > accepted_reads.txt
+        nreads_accept=\$(wc -l < accepted_reads.txt)
+        nreads_total=\$(wc -l < '$decisionfile')
+        echo -e "Found \$nreads_accept out of \$nreads_total reads to basecall " 
+    fi
+    
+    dorado basecaller $readids ${params.model} ${pod5} > reads.bam
 
     # check if reads.bam has reads and exit if no
-    nreads=\$(samtools view -c reads.bam)
+    nreads=\$(wc -l < reads.bam)
 
     if [ "\$nreads" -eq 0 ]; then
         echo "No reads found in reads.bam, exiting." >&2
@@ -61,6 +49,7 @@ process DORADO_BASECALL_BARCODING {
     //container 'docker.io/nanoporetech/dorado:latest'
 
     publishDir "${params.outdir}/00-basecall", mode: 'copy'
+    tag "${params.asfile ? 'with' : 'no'} adaptive sampling"
 
     input:
         path decisionfile
@@ -70,9 +59,19 @@ process DORADO_BASECALL_BARCODING {
         path "bam_pass", type: 'dir', emit: ch_bam_pass
 
     script:
+    def readids = params.asfile ? "--read-ids accepted_reads.txt" : ""
     """
-    dorado basecaller --kit-name ${params.kit} -o basecall-${params.model} ${params.model} ${pod5}
+    if [ "$decisionfile" != "EMPTY" ]; then
+        echo "asfile provided, proceeding to basecall filtered reads."
+        awk -F',' '\$2 == "sequence"' '$decisionfile' | cut -f1 -d, > accepted_reads.txt
+        nreads_accept=\$(wc -l < accepted_reads.txt)
+        nreads_total=\$(wc -l < '$decisionfile')
+        echo -e "Found \$nreads_accept out of \$nreads_total reads to basecall " 
+    fi
+
+    dorado basecaller $readids --kit-name ${params.kit} -o basecall-${params.model} ${params.model} ${pod5}
     # the folder with barcodes is basecall-sup/folder1/folder2/folder3/bam_pass
+    [ -d "basecall-${params.model}" ] || { echo "Basecalling output folder empty!" >&2; exit 1; }
     ln -s basecall-${params.model}/*/*/*/bam_pass bam_pass
     """
 }
@@ -112,6 +111,22 @@ process DORADO_ALIGN {
     """
     dorado aligner ${ref} ${reads} | samtools sort -o ${reads.simpleName}.align.bam
     samtools index ${reads.simpleName}.align.bam
+    """
+}
+
+process MAKE_BEDFILE {
+    container 'docker.io/aangeloo/nxf-tgs:latest'
+    
+    input:
+        path ref
+
+    output:
+        path "fallback.bed"
+
+    script:
+    """
+    samtools faidx ${ref}
+    awk -v OFS='\t' '{print \$1, 0, \$2, \$1}' ${ref}.fai > fallback.bed 
     """
 }
 
@@ -171,7 +186,7 @@ process REPORT {
     script:
     """
     
-    bedtools-report.py $bedtools_hist -o report.html
+    bedtools-report.py $bedtools_hist -o coverage-report.html
     """
 }
 
@@ -180,7 +195,8 @@ ch_samplesheet = params.samplesheet ? Channel.fromPath(params.samplesheet, check
 
 workflow basecall {
     ch_pod5 = Channel.fromPath(params.pod5, checkIfExists: true)
-    ch_decisionfile = Channel.fromPath(params.asfile, checkIfExists: true)
+    // if no asfile, use dummy placeholder to still do dorado basecalling without as filtering
+    ch_decisionfile = params.asfile ? Channel.fromPath(params.asfile, checkIfExists: true) : Channel.fromPath('EMPTY', type: 'file')
     
     if (params.kit) {
         DORADO_BASECALL_BARCODING(ch_decisionfile, ch_pod5)  
@@ -217,12 +233,21 @@ workflow {
         // Otherwise, source the channel from the 'basecall' (or basecall + merge_reads) workflow's output.
         ch_reads = basecall().ch_bc
     }
+
+    // if no bedfile provided, just use the ref to generate one with the fasta entries
+    if ( !params.bedfile ) {
+        //placeholder for generating bedfile from reference
+        MAKE_BEDFILE(Channel.fromPath(params.reference, checkIfExists: true))
+        ch_bedfile = MAKE_BEDFILE.out
+    } else {
+        ch_bedfile = Channel.fromPath(params.bedfile, checkIfExists: true)
+    }
     
     ch_ref \
     .combine( ch_reads ) \
     //.view()
     | DORADO_ALIGN \
-    | combine( Channel.fromPath(params.bedfile, checkIfExists: true) ) \
+    | combine( ch_bedfile ) \
     | (SAMTOOLS_BEDCOV & BEDTOOLS_COV) \
     
     
