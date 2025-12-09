@@ -180,7 +180,7 @@ def generate_html_report(samples_data, readstats_data, run_info, output_file):
     if readstats_data:
         readstats_table_html = """
       <h3 style="margin-bottom: 15px; font-size: 1.1em; color: #374151;">Read Statistics</h3>
-      <div class="table-container" style="margin-bottom: 30px;">
+      <div class="table-container" style="margin-bottom: 30px; position: relative;">
         <table id="readstatsTable">
           <thead>
             <tr>
@@ -302,25 +302,28 @@ def generate_html_report(samples_data, readstats_data, run_info, output_file):
       align-items: flex-end;
       margin-bottom: 20px;
     }}
+    
     .filter-group {{
       flex-grow: 1;
     }}
+
     .filter-label {{
       display: block;
       margin-bottom: 5px;
-      font-weight: 600;
+      font-weight: 400;
       font-size: 0.9em;
     }}
     .filter-box {{
       padding: 10px;
       width: 100%;
-      border: 2px solid #e2e8f0;
+      border: 2px solid #374151;
+      background-color: #374151;
       border-radius: 6px;
       font-size: 16px;
     }}
     .filter-box:focus {{
       outline: none;
-      border-color: #60a5fa;
+      border-color: #374151;
     }}
     /* Minimal rule: keep Select2 containers full-width so controls stay aligned */
     .filter-group .select2-container {{ width: 'resolve' !important; }}
