@@ -280,8 +280,8 @@ def generate_html_report(samples_data, readstats_data, run_info, output_file):
       /* Adjusted grid template to fit more cards */
       grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); 
       gap: 15px;
-      margin-top: 20px; /* Adjusted margin to accommodate run info */
-      margin-bottom: 20px;
+      margin-top: 0px; /* Adjusted margin to accommodate run info */
+      margin-bottom: 10px;
     }}
     .stat-card {{
       /* CHANGED: Use header color */
@@ -322,38 +322,8 @@ def generate_html_report(samples_data, readstats_data, run_info, output_file):
       outline: none;
       border-color: #60a5fa;
     }}
-    /* --- Select2 Custom Styling --- */
-    .filter-group .select2-container {{
-      width: 100% !important; 
-    }}
-    .select2-container .select2-selection--multiple {{
-        min-height: 40px; 
-        border: 2px solid #e2e8f0 !important;
-        border-radius: 6px;
-        padding: 5px 10px;
-        width: 100% !important;
-    }}
-    .select2-container .select2-selection--multiple .select2-selection__rendered {{
-        width: 100% !important;
-        display: flex;
-        flex-wrap: nowrap;
-        overflow: hidden;
-    }}
-    .select2-container .select2-selection--multiple .select2-selection__choice {{
-        flex-shrink: 0;
-    }}
-    .select2-container--default.select2-container--focus .select2-selection--multiple {{
-        border-color: #60a5fa !important;
-        outline: 0;
-    }}
-    .select2-container--default .select2-selection--multiple .select2-selection__choice {{
-        background-color: #e0f2fe;
-        border: 1px solid #90cdf4;
-        color: #1e40af;
-        padding: 3px 5px;
-        border-radius: 4px;
-    }}
-    /* --- End Select2 Custom Styling --- */
+    /* Minimal rule: keep Select2 containers full-width so controls stay aligned */
+    .filter-group .select2-container {{ width: 'resolve' !important; }}
     
     .table-container {{
       overflow-x: auto;

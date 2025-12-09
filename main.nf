@@ -1,4 +1,44 @@
+include {DORADO_BASECALL} from './modules/basecalling.nf'
+include {DORADO_BASECALL_BARCODING} from './modules/basecalling.nf'
 
+
+if (params.help) {
+        showHelp()
+        exit 0
+}
+
+// 
+def showHelp() {
+        log.info """
+=============================================
+NXF-ALIGNMENT
+basecal, align, and analyze ONT data
+=============================================
+
+Usage:
+    nextflow run anngelovangel/nxf-alignment [--pod5 <path>] [--reads <path>] --ref <ref.fasta> [options]
+
+Required/important options:
+    --ref <path>     Reference FASTA (required unless -entry basecall is used)
+
+Input options:
+    --pod5 <dir>           Directory with POD5 files (use when basecalling)
+    --reads <file|dir>     BAM/FASTQ file or directory of reads (skips basecalling)
+    --asfile <file>        Adaptive sampling CSV (filters reads to basecall)
+
+Processing options:
+    --model <name>         Dorado basecalling model (default: fast)
+    --kit <name>           Barcoding kit name (required with --samplesheet)
+    --samplesheet <file>   CSV with columns: sample,barcode (required with --kit)
+    --bed <file>           BED file with regions (auto-generated from reference if omitted)
+
+Output & config:
+    --outdir <name>        Output directory name (default: results)
+    -profile <name>        Nextflow profile (test)
+    -entry <name>          Workflow entry point (basecall, use for basecalling only)
+
+""".stripIndent()
+}
 
 
 if (params.kit && !params.samplesheet) {
@@ -9,79 +49,10 @@ if (!params.kit && params.samplesheet) {
     error "If --samplesheet is provided, --kit must also be specified."
 }
 
-// BASECALL
 
-process DORADO_BASECALL {
-
-    //container 'docker.io/nanoporetech/dorado:latest'
-
-    publishDir "${params.outdir}/00-basecall", mode: 'copy'
-    tag "${params.asfile ? 'with' : 'no'} adaptive sampling"
-    input:
-        path decisionfile
-        path pod5
-
-    output:
-        path "reads.bam"
-
-    script:
-    def readids = params.asfile ? "--read-ids accepted_reads.txt" : ""
-    """
-    if [ "$decisionfile" != "EMPTY" ]; then
-        echo "asfile provided, proceeding to basecall filtered reads."
-        awk -F',' '\$2 == "sequence"' '$decisionfile' | cut -f1 -d, > accepted_reads.txt
-        nreads_accept=\$(wc -l < accepted_reads.txt)
-        nreads_total=\$(wc -l < '$decisionfile')
-        echo -e "Found \$nreads_accept out of \$nreads_total reads to basecall " 
-    fi
-    
-    dorado basecaller $readids ${params.model} ${pod5} > reads.bam
-
-    # check if reads.bam has reads and exit if no
-    nreads=\$(wc -l < reads.bam)
-
-    if [ "\$nreads" -eq 0 ]; then
-        echo "No reads found in reads.bam, exiting." >&2
-        exit 1
-    fi
-
-    """
-}
-
-process DORADO_BASECALL_BARCODING {
-
-    //container 'docker.io/nanoporetech/dorado:latest'
-
-    publishDir "${params.outdir}/00-basecall", mode: 'copy'
-    tag "${params.asfile ? 'with' : 'no'} adaptive sampling"
-
-    input:
-        path decisionfile
-        path pod5
-
-    output:
-        path "bam_pass", type: 'dir', emit: ch_bam_pass
-
-    script:
-    def readids = params.asfile ? "--read-ids accepted_reads.txt" : ""
-    """
-    if [ "$decisionfile" != "EMPTY" ]; then
-        echo "asfile provided, proceeding to basecall filtered reads."
-        awk -F',' '\$2 == "sequence"' '$decisionfile' | cut -f1 -d, > accepted_reads.txt
-        nreads_accept=\$(wc -l < accepted_reads.txt)
-        nreads_total=\$(wc -l < '$decisionfile')
-        echo -e "Found \$nreads_accept out of \$nreads_total reads to basecall " 
-    fi
-
-    dorado basecaller $readids --kit-name ${params.kit} -o basecall-${params.model} ${params.model} ${pod5}
-    # the folder with barcodes is basecall-sup/folder1/folder2/folder3/bam_pass
-    [ -d "basecall-${params.model}" ] || { echo "Basecalling output folder empty!" >&2; exit 1; }
-    ln -s basecall-${params.model}/*/*/*/bam_pass bam_pass
-    """
-}
 // get run info from bam header
 process RUN_INFO {
-    // Uses a container with samtools and standard Unix tools
+    
     container 'docker.io/aangeloo/nxf-tgs:latest' 
     
     input:
@@ -127,7 +98,7 @@ process MERGE_READS {
 
 process READ_STATS {
     container 'docker.io/aangeloo/nxf-tgs:latest'
-    //publishDir "${params.outdir}/00-basecall", mode: 'copy', pattern: '*readstats.tsv'
+    publishDir "${params.outdir}/00-basecall", mode: 'copy', pattern: '*readstats.tsv'
     tag "${reads.simpleName} - ${reads.extension} file"
 
     input:
@@ -184,31 +155,6 @@ process MAKE_BEDFILE {
     awk -v OFS='\t' '{print \$1, 0, \$2, \$1}' ${ref}.fai > fallback.bed 
     """
 }
-
-/*
-process SAMTOOLS_BEDCOV {
-    container 'docker.io/aangeloo/nxf-tgs:latest'
-
-    publishDir "${params.outdir}/02-coverage", mode: 'copy', pattern: '*cov.tsv'
-    tag "${bam.simpleName}"
-
-    input:
-        tuple path(bam), path(bai), path(bed)
-
-    output:
-        path "*cov.tsv"
-
-    script:
-    """
-    echo -e "chr\tstart\tend\tlabel\tbases\tregion_len\tcoverage" > ${bam.simpleName}.cov.tsv
-    samtools bedcov ${bed} ${bam} | awk '{
-        region_length = \$3 - \$2
-        coverage = (\$5 / region_length)
-        print \$0 "\t" region_length "\t" coverage
-    }' >> ${bam.simpleName}.cov.tsv
-    """
-}
-*/
 
 process BEDTOOLS_COV {
     container 'docker.io/biocontainers/bedtools:v2.27.1dfsg-4-deb_cv1'
@@ -272,7 +218,7 @@ workflow basecall {
 }
 
 workflow {
-    ch_ref = Channel.fromPath(params.reference)
+    ch_ref = Channel.fromPath(params.ref)
 
     // If 'reads' parameter is provided create a 
     // channel from that path.
@@ -292,12 +238,12 @@ workflow {
     }
 
     // if no bedfile provided, just use the ref to generate one with the fasta entries
-    if ( !params.bedfile ) {
+    if ( !params.bed ) {
         // generating bedfile from reference
-        MAKE_BEDFILE(Channel.fromPath(params.reference, checkIfExists: true))
+        MAKE_BEDFILE(Channel.fromPath(params.ref, checkIfExists: true))
         ch_bedfile = MAKE_BEDFILE.out
     } else {
-        ch_bedfile = Channel.fromPath(params.bedfile, checkIfExists: true)
+        ch_bedfile = Channel.fromPath(params.bed, checkIfExists: true)
     }
 
     ch_reads
