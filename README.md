@@ -17,7 +17,7 @@ A Nextflow workflow for basecalling, aligning, and analyzing long-read sequencin
 
 ## Quick Start
 
-See also [workflow diagram](assets/diagram.html) for how parameter use determine the workflow path
+See also [workflow diagram](https://angelovangel.github.io/nxf-alignment/assets/diagram.html) for how parameter use determine the workflow path
 
 #### Basic Workflow (Basecalling + Alignment)
 For an adaptive sampling run, basecalling is done for the accepted reads based on the decision file produced by MinKNOW.
