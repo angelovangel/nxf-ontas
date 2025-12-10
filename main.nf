@@ -26,7 +26,7 @@ Input options:
     --asfile <file>        Adaptive sampling CSV (filters reads to basecall)
 
 Processing options:
-    --model <name>         Dorado basecalling model (default: fast)
+    --model <name>         Dorado basecalling model (default: fast). For modifications use for example 'hac,5mCG_5hmCG'
     --kit <name>           Barcoding kit name (required with --samplesheet)
     --samplesheet <file>   CSV with columns: sample,barcode (required with --kit)
     --bed <file>           BED file with regions (auto-generated from reference if omitted)

@@ -53,7 +53,7 @@
           "format": "directory-path",
           "description": "The output directory where the results will be saved",
           "fa_icon": "fas fa-poll",
-          "default": "results"
+          "default": "output"
         }
       }
     },
@@ -68,7 +68,7 @@
           "description": "Dorado basecalling model",
           "fa_icon": "fas fa-microchip",
           "default": "fast",
-          "help_text": "Name of the Dorado model to use for basecalling. Default is 'fast'."
+          "help_text": "Name of the Dorado model to use for basecalling. Default is 'fast'. For modifications, use for example 'hac,5mCG_5hmCG'"
         },
         "kit": {
           "type": "string",
