@@ -7,8 +7,8 @@
   "url": "https://github.com/angelovangel/nxf-alignment",
   "type": "object",
   "definitions": {
-    "input_output_options": {
-      "title": "Input/output options",
+    "basecalling_options": {
+      "title": "Basecalling options",
       "type": "object",
       "fa_icon": "fas fa-angle-double-right",
       "description": "Define where the pipeline should find input data and save output data.",
@@ -27,13 +27,6 @@
           "description": "BAM/FASTQ file or directory of reads (skips basecalling)",
           "help_text": "Path to a single BAM/FASTQ file or directory containing multiple read files. If provided, basecalling will be skipped."
         },
-        "ref": {
-          "type": "string",
-          "format": "file-path",
-          "fa_icon": "fas fa-dna",
-          "description": "Reference FASTA file",
-          "help_text": "Path to reference FASTA file for alignment. Required unless using -entry basecall."
-        },
         "asfile": {
           "type": "string",
           "format": "file-path",
@@ -41,13 +34,106 @@
           "description": "Adaptive sampling CSV file",
           "help_text": "CSV file from adaptive sampling that filters which reads to basecall."
         },
+        "barcoded": {
+          "type": "boolean",
+          "description": "Barcoded run",
+          "fa_icon": "fas fa-barcode",
+          "default": false
+        }
+      },
+      "oneOf": [
+        {
+          "required": [
+            "pod5"
+          ]
+        },
+        {
+          "required": [
+            "reads"
+          ]
+        }
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "barcoded": {
+                "const": true
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "kit": {
+                "type": "string",
+                "description": "Barcoding kit name",
+                "fa_icon": "fas fa-barcode",
+                "help_text": "Name of the barcoding kit used.",
+                "enum": [
+                  "SQK-16S024",
+                  "SQK-16S114-24",
+                  "SQK-NBD114-24",
+                  "SQK-NBD114-96",
+                  "SQK-PCB114-24",
+                  "SQK-RBK114-24",
+                  "SQK-RBK114-96",
+                  "SQK-RPB114-24",
+                  "TWIST-16-UDI",
+                  "TWIST-96A-UDI",
+                  "VSK-PTC001",
+                  "VSK-VMK001",
+                  "VSK-VMK004",
+                  "VSK-VPS001"
+                ]
+              },
+              "samplesheet": {
+                "type": "string",
+                "format": "file-path",
+                "fa_icon": "fas fa-vials",
+                "mimetype": "text/csv",
+                "description": "CSV file with sample and barcode information",
+                "help_text": "Samplesheet must contain columns 'sample' and 'barcode'."
+              }
+            }
+          }
+        }
+      ]
+    },
+    "alignment_options": {
+      "title": "Alignment options",
+      "type": "object",
+      "fa_icon": "fas fa-cogs",
+      "description": "Options for alignment.",
+      "properties": {
+        "model": {
+          "type": "string",
+          "description": "Dorado basecalling model",
+          "fa_icon": "fas fa-microchip",
+          "default": "fast",
+          "help_text": "Name of the Dorado model to use for basecalling. Default is 'fast'. For modifications, use for example 'hac,5mCG_5hmCG'. See [Dorado models](https://software-docs.nanoporetech.com/dorado/latest/models/selection/)."
+        },
+        "ref": {
+          "type": "string",
+          "format": "file-path",
+          "fa_icon": "fas fa-dna",
+          "description": "Reference FASTA file",
+          "help_text": "Path to reference FASTA file for alignment. Required unless using -entry basecall."
+        },
         "bed": {
           "type": "string",
           "format": "file-path",
           "fa_icon": "fas fa-map",
           "description": "BED file with regions",
           "help_text": "BED file defining regions of interest. If omitted, will be auto-generated from the reference file."
-        },
+        }
+      }
+    },
+    "other_options": {
+      "title": "Other options",
+      "type": "object",
+      "fa_icon": "fas fa-question-circle",
+      "description": "Output and other options.",
+      "properties": {
         "outdir": {
           "type": "string",
           "format": "directory-path",
@@ -56,59 +142,17 @@
           "default": "output"
         }
       }
-    },
-    "processing_options": {
-      "title": "Processing options",
-      "type": "object",
-      "fa_icon": "fas fa-cogs",
-      "description": "Options for processing and basecalling.",
-      "properties": {
-        "model": {
-          "type": "string",
-          "description": "Dorado basecalling model",
-          "fa_icon": "fas fa-microchip",
-          "default": "fast",
-          "help_text": "Name of the Dorado model to use for basecalling. Default is 'fast'. For modifications, use for example 'hac,5mCG_5hmCG'. See [Dorado models](https://github.com/nanoporetech/dorado#models)."
-        },
-        "kit": {
-          "type": "string",
-          "description": "Barcoding kit name",
-          "fa_icon": "fas fa-barcode",
-          "help_text": "Name of the barcoding kit used. Required when run is barcoded.",
-          "enum": [
-            "SQK-16S024",
-            "SQK-16S114-24",
-            "SQK-NBD114-24",
-            "SQK-NBD114-96",
-            "SQK-PCB114-24",
-            "SQK-RBK114-24",
-            "SQK-RBK114-96",
-            "SQK-RPB114-24",
-            "TWIST-16-UDI",
-            "TWIST-96A-UDI",
-            "VSK-PTC001",
-            "VSK-VMK001",
-            "VSK-VMK004",
-            "VSK-VPS001"
-          ]
-        },
-        "samplesheet": {
-          "type": "string",
-          "format": "file-path",
-          "fa_icon": "fas fa-vials",
-          "mimetype": "text/csv",
-          "description": "CSV file with sample and barcode information",
-          "help_text": "Samplesheet must contain columns 'sample' and 'barcode'. Required when run is barcoded."
-        }
-      }
     }
   },
   "allOf": [
     {
-      "$ref": "#/definitions/input_output_options"
+      "$ref": "#/definitions/basecalling_options"
     },
     {
-      "$ref": "#/definitions/processing_options"
+      "$ref": "#/definitions/alignment_options"
+    },
+    {
+      "$ref": "#/definitions/other_options"
     }
   ]
 }

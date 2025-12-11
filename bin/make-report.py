@@ -151,7 +151,7 @@ def generate_html_report(samples_data, readstats_data, run_info, wf_info, output
         # The <details> block sits inside the .header div, inheriting its dark background.
         run_info_html += """
     <details style="padding-top: 5px; margin-top: 5px; border-top: 1px solid rgba(255, 255, 255, 0.2); text-align: left;">
-      <summary style="font-size: 0.8em; cursor: pointer; color: white;">Sequencing Run Details</summary>
+      <summary style="font-size: 0.8em; cursor: pointer; color: white;">Sequencing run details</summary>
       <div style="padding-top: 5px; text-align: left; width: 100%;">
         <table style="width: 100%; border-collapse: collapse; margin-top: 5px; color: white; border: none; background: inherit;">
           <tbody>
@@ -181,7 +181,7 @@ def generate_html_report(samples_data, readstats_data, run_info, wf_info, output
     if wf_info:
         wf_info_html += """
     <details style="padding-top: 5px; margin-top: 5px; text-align: left;">
-      <summary style="font-size: 0.8em; cursor: pointer; color: white;">Workflow Properties</summary>
+      <summary style="font-size: 0.8em; cursor: pointer; color: white;">Workflow details</summary>
       <div style="padding-top: 5px; text-align: left; width: 100%;">
         <table style="width: 100%; border-collapse: collapse; margin-top: 5px; color: white; border: none; background: inherit;">
           <tbody>
