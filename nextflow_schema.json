@@ -20,6 +20,13 @@
           "description": "Directory with POD5 files (use when basecalling)",
           "help_text": "Path to directory containing POD5 files for basecalling. Required when starting from raw data."
         },
+        "model": {
+          "type": "string",
+          "description": "Dorado basecalling model",
+          "fa_icon": "fas fa-microchip",
+          "default": "fast",
+          "help_text": "Name of the Dorado model to use for basecalling. Default is 'fast'. For modifications, use for example 'hac,5mCG_5hmCG'. See [Dorado models](https://software-docs.nanoporetech.com/dorado/latest/models/selection/)."
+        },
         "reads": {
           "type": "string",
           "format": "path",
@@ -34,68 +41,48 @@
           "description": "Adaptive sampling CSV file",
           "help_text": "CSV file from adaptive sampling that filters which reads to basecall."
         },
-        "barcoded": {
-          "type": "boolean",
-          "description": "Barcoded run",
+        "kit": {
+          "type": "string",
+          "description": "Barcoding kit name",
           "fa_icon": "fas fa-barcode",
-          "default": false
+          "help_text": "Name of the barcoding kit used. Required when run is barcoded.",
+          "enum": [
+            "SQK-16S024",
+            "SQK-16S114-24",
+            "SQK-NBD114-24",
+            "SQK-NBD114-96",
+            "SQK-PCB114-24",
+            "SQK-RBK114-24",
+            "SQK-RBK114-96",
+            "SQK-RPB114-24",
+            "TWIST-16-UDI",
+            "TWIST-96A-UDI",
+            "VSK-PTC001",
+            "VSK-VMK001",
+            "VSK-VMK004",
+            "VSK-VPS001"
+          ]
+        },
+        "samplesheet": {
+          "type": "string",
+          "format": "file-path",
+          "fa_icon": "fas fa-vials",
+          "mimetype": "text/csv",
+          "description": "CSV file with sample and barcode information",
+          "help_text": "Samplesheet must contain columns 'sample' and 'barcode'. Required when run is barcoded."
         }
       },
       "oneOf": [
         {
           "required": [
-            "pod5"
+            "pod5",
+            "model"
           ]
         },
         {
           "required": [
             "reads"
           ]
-        }
-      ],
-      "allOf": [
-        {
-          "if": {
-            "properties": {
-              "barcoded": {
-                "const": true
-              }
-            }
-          },
-          "then": {
-            "properties": {
-              "kit": {
-                "type": "string",
-                "description": "Barcoding kit name",
-                "fa_icon": "fas fa-barcode",
-                "help_text": "Name of the barcoding kit used.",
-                "enum": [
-                  "SQK-16S024",
-                  "SQK-16S114-24",
-                  "SQK-NBD114-24",
-                  "SQK-NBD114-96",
-                  "SQK-PCB114-24",
-                  "SQK-RBK114-24",
-                  "SQK-RBK114-96",
-                  "SQK-RPB114-24",
-                  "TWIST-16-UDI",
-                  "TWIST-96A-UDI",
-                  "VSK-PTC001",
-                  "VSK-VMK001",
-                  "VSK-VMK004",
-                  "VSK-VPS001"
-                ]
-              },
-              "samplesheet": {
-                "type": "string",
-                "format": "file-path",
-                "fa_icon": "fas fa-vials",
-                "mimetype": "text/csv",
-                "description": "CSV file with sample and barcode information",
-                "help_text": "Samplesheet must contain columns 'sample' and 'barcode'."
-              }
-            }
-          }
         }
       ]
     },
@@ -105,13 +92,6 @@
       "fa_icon": "fas fa-cogs",
       "description": "Options for alignment.",
       "properties": {
-        "model": {
-          "type": "string",
-          "description": "Dorado basecalling model",
-          "fa_icon": "fas fa-microchip",
-          "default": "fast",
-          "help_text": "Name of the Dorado model to use for basecalling. Default is 'fast'. For modifications, use for example 'hac,5mCG_5hmCG'. See [Dorado models](https://software-docs.nanoporetech.com/dorado/latest/models/selection/)."
-        },
         "ref": {
           "type": "string",
           "format": "file-path",
