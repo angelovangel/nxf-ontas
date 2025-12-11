@@ -2,6 +2,7 @@ include {DORADO_BASECALL; DORADO_BASECALL_BARCODING} from './modules/basecall.nf
 include {DORADO_ALIGN; MAKE_BEDFILE; BEDTOOLS_COV} from './modules/align.nf'
 include {MERGE_READS; READ_STATS} from './modules/reads.nf'
 include {RUN_INFO} from './modules/runinfo.nf'
+include {REPORT} from './modules/report.nf'
 
 
 if (params.help) {
@@ -58,25 +59,6 @@ if (!params.kit && params.samplesheet) {
     error "If --samplesheet is provided, --kit must also be specified."
 }
 
-
-
-
-
-process REPORT {
-    container 'docker.io/aangeloo/nxf-tgs:latest'
-
-    publishDir "${params.outdir}", mode: 'copy', pattern: '*html'
-    
-    input:
-       tuple path(hist), path(readstats), path(runinfo), path(wf_props)
-    output:
-        path "*.html"
-
-    script:
-    """
-    make-report.py --hist $hist --readstats $readstats --runinfo $runinfo --wfinfo $wf_props -o nxf-alignment-report.html
-    """
-}
 
 // do basecall only
 workflow basecall {

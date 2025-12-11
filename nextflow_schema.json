@@ -8,10 +8,10 @@
   "type": "object",
   "definitions": {
     "basecalling_options": {
-      "title": "Basecalling options",
+      "title": "Basecalling/Input reads options",
       "type": "object",
       "fa_icon": "fas fa-angle-double-right",
-      "description": "Define where the pipeline should find input data and save output data.",
+      "description": "Choose basecalling or input reads, adaptive sampling decisions file (optional), kit and samplesheet (for barcoded run).",
       "properties": {
         "pod5": {
           "type": "string",
@@ -91,6 +91,9 @@
       "type": "object",
       "fa_icon": "fas fa-cogs",
       "description": "Options for alignment.",
+      "required": [
+        "ref"
+      ],
       "properties": {
         "ref": {
           "type": "string",
@@ -103,7 +106,7 @@
           "type": "string",
           "format": "file-path",
           "fa_icon": "fas fa-map",
-          "description": "BED file with regions",
+          "description": "BED file with regions of interest",
           "help_text": "BED file defining regions of interest. If omitted, will be auto-generated from the reference file."
         }
       }
@@ -113,6 +116,10 @@
       "type": "object",
       "fa_icon": "fas fa-question-circle",
       "description": "Output and other options.",
+      "help_text": "It is recommended to not change the default output directory.",
+      "required": [
+        "outdir"
+      ],
       "properties": {
         "outdir": {
           "type": "string",
