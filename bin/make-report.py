@@ -463,22 +463,34 @@ def render_details_block(title, info_list, add_top_border=False):
     """
     return html
 
-def render_stats_cards(readstats_data, samples_data, genes, region_totals):
+def render_stats_cards(readstats_data, samples_data, genes, region_totals, ref_stats):
     """Render the top statistics cards"""
     total_bases = sum(stats.get('bases', 0) for stats in readstats_data.values()) if readstats_data else 0
     total_reads = sum(stats.get('reads', 0) for stats in readstats_data.values()) if readstats_data else 0
     total_bed_size = sum(region_totals.values())
     
+    # Ref stats extraction
+    ref_contigs = 0
+    ref_bases = 0
+    if ref_stats and len(ref_stats) > 0:
+        ref_contigs = int(ref_stats[0].get('contigs', 0))
+        ref_bases = int(float(ref_stats[0].get('bases', 0))) # in case it's float string
+
     # Use sorted readstats keys for Sample count definition (consistent with existing)
     sample_count = len(readstats_data) if readstats_data else len(samples_data) # Fallback
 
     reads_fmt = format_si(total_reads)
     bases_fmt = format_si(total_bases)
     bed_fmt = format_si(total_bed_size)
+    ref_bases_fmt = format_si(ref_bases)
     genes_count = len(genes)
 
     html = f"""
       <div class="stats">
+      <div class="stat-card">
+          <h3>Samples</h3>
+          <div class="value">{sample_count}</div>
+        </div>
         <div class="stat-card">
           <h3>Total Reads</h3>
           <div class="value">{reads_fmt}</div>
@@ -488,12 +500,16 @@ def render_stats_cards(readstats_data, samples_data, genes, region_totals):
           <div class="value">{bases_fmt}</div>
         </div>
         <div class="stat-card">
-          <h3>Total Genes/Regions</h3>
-          <div class="value">{genes_count}</div>
+          <h3>Ref Size</h3>
+          <div class="value">{ref_bases_fmt}</div>
         </div>
         <div class="stat-card">
-          <h3>Samples</h3>
-          <div class="value">{sample_count}</div>
+          <h3>Ref Contigs</h3>
+          <div class="value">{ref_contigs}</div>
+        </div>
+        <div class="stat-card">
+          <h3>BED Genes/Regions</h3>
+          <div class="value">{genes_count}</div>
         </div>
         <div class="stat-card">
           <h3>Total BED size</h3>
@@ -627,7 +643,7 @@ def render_coverage_table(samples_data, genes):
     """
     return html
 
-def generate_html_report(samples_data, readstats_data, run_info, wf_info, output_file):
+def generate_html_report(samples_data, readstats_data, run_info, wf_info, ref_stats, output_file):
     """Generate HTML report from multiple samples"""
     
     # Pre-processing
@@ -656,7 +672,7 @@ def generate_html_report(samples_data, readstats_data, run_info, wf_info, output
     run_info_block = render_details_block("Sequencing run details", run_info, add_top_border=True)
     wf_info_block = render_details_block("Workflow details", wf_info, add_top_border=False)
     
-    stats_cards = render_stats_cards(readstats_data, samples_data, genes, region_totals)
+    stats_cards = render_stats_cards(readstats_data, samples_data, genes, region_totals, ref_stats)
     readstats_table = render_readstats_table(readstats_data)
     coverage_table = render_coverage_table(samples_data, genes)
     
@@ -716,6 +732,7 @@ def main():
     parser.add_argument('--readstats', nargs='*', default=[], help='One or more .readstats.tsv files')
     parser.add_argument('--runinfo', type=str, help='Optional CSV file with run metadata (e.g., flowcell_id, run_date)', default=None)
     parser.add_argument('--wfinfo', type=str, help='Optional CSV file with workflow properties', default=None)
+    parser.add_argument('--refstats', type=str, help='Optional CSV file with reference stats', default=None)
     parser.add_argument('-o', '--output', required=True, help='Output HTML file')
     
     args = parser.parse_args()
@@ -724,6 +741,7 @@ def main():
     readstats_data = {}
     run_info = [] 
     wf_info = []
+    ref_stats = []
 
     if args.runinfo:
         print(f"Loading run info from {args.runinfo}...")
@@ -732,6 +750,10 @@ def main():
     if args.wfinfo:
         print(f"Loading wf info from {args.wfinfo}...")
         wf_info = parse_runinfo_csv(args.wfinfo)
+
+    if args.refstats:
+        print(f"Loading ref stats from {args.refstats}...")
+        ref_stats = parse_runinfo_csv(args.refstats)
 
     for hist_file in args.hist:
         path = Path(hist_file)
@@ -747,7 +769,7 @@ def main():
         print(f"Processing stats {readstats_file} (Sample: {sample_name})...")
         readstats_data[sample_name] = parse_readstats_file(readstats_file)
 
-    generate_html_report(samples_data, readstats_data, run_info, wf_info, args.output)
+    generate_html_report(samples_data, readstats_data, run_info, wf_info, ref_stats, args.output)
 
 if __name__ == "__main__":
     main()

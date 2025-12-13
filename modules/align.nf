@@ -54,3 +54,20 @@ process BEDTOOLS_COV {
     bedtools coverage -a ${bed} -b ${bam} -hist >> ${bam.simpleName}.hist.tsv
     """
 }
+
+process REF_STATS {
+    container 'docker.io/aangeloo/nxf-tgs:latest'
+    tag "${ref.simpleName}"
+
+    input:
+        path ref
+
+    output:
+        path "ref_stats.csv"
+
+    script:
+    """
+    samtools faidx ${ref}
+    awk 'BEGIN {sum=0; count=0; print "contigs,bases"} {sum+=\$2; count++} END {print count "," sum}' ${ref}.fai > ref_stats.csv
+    """
+}

@@ -1,5 +1,5 @@
 include {DORADO_BASECALL; DORADO_BASECALL_BARCODING} from './modules/basecall.nf'
-include {DORADO_ALIGN; MAKE_BEDFILE; BEDTOOLS_COV} from './modules/align.nf'
+include {DORADO_ALIGN; MAKE_BEDFILE; BEDTOOLS_COV; REF_STATS} from './modules/align.nf'
 include {MERGE_READS; READ_STATS} from './modules/reads.nf'
 include {RUN_INFO} from './modules/runinfo.nf'
 include {REPORT} from './modules/report.nf'
@@ -43,6 +43,9 @@ Output & config:
 // create empty runinfo file if not created
 def empty_runinfo = file("${workflow.workDir}/empty_runinfo.csv")
 empty_runinfo.text = ""
+
+def empty_refstats = file("${workflow.workDir}/empty_refstats.csv")
+empty_refstats.text = ""
 
 // Workflow properties - create CSV content as a string
 def workflow_properties = """\
@@ -90,24 +93,34 @@ workflow basecall {
 }
 // do basecall + reporting
 workflow report {
+    // Calc ref stats if ref exists, else empty
+    if (params.ref) {
+        REF_STATS(Channel.fromPath(params.ref))
+        ch_ref_stats = REF_STATS.out
+    } else {
+        ch_ref_stats = Channel.fromPath(empty_refstats)
+    }
+
     ch_reads = basecall().ch_bc
     
     RUN_INFO( ch_reads.filter{ it.name.endsWith('.bam') }.first() )
     READ_STATS(ch_reads)
 
-// no alignment, so an empty file is given to REPORT
+    // no alignment, so an empty file is given to REPORT
     new File('./work/empty').text = ''
     Channel.fromPath('./work/empty', type: 'file')
     .toList()
     .combine( READ_STATS.out.collect().toList() )
     .combine( RUN_INFO.out.ifEmpty(empty_runinfo) )
     .combine( ch_wf_properties )
+    .combine( ch_ref_stats )
     //.view()
     | REPORT
 }
 
 workflow {
     ch_ref = Channel.fromPath(params.ref)
+    REF_STATS(ch_ref)
 
     // If 'reads' parameter is provided create a channel from that path.
     // also possible to pass a folder with reads, every read is one sample
@@ -151,6 +164,7 @@ workflow {
     .combine( READ_STATS.out.collect().toList() )
     .combine( RUN_INFO.out.ifEmpty(empty_runinfo) )
     .combine( ch_wf_properties )
+    .combine( REF_STATS.out )
     //.view()
     | REPORT
     
