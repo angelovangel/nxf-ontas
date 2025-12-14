@@ -447,6 +447,8 @@ def render_details_block(title, info_list, add_top_border=False):
         if i > 0:
             html += '<tr><td colspan="2" style="border-bottom: 1px solid rgba(255, 255, 255, 0.2); padding: 0;"></td></tr>'
         for key, value in row.items():
+            if key is None:
+                continue
             display_key = key.replace('_', ' ').title()
             html += f"""
             <tr>

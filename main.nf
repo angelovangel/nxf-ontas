@@ -10,6 +10,24 @@ if (params.help) {
         exit 0
 }
 
+// Log execution environment
+log.info """
+    NXF-ALIGNMENT Execution Summary
+    ===============================
+    Profile         : ${workflow.profile}
+    Container Engine: ${workflow.containerEngine ?: 'local'}
+    
+    pod5            : ${params.pod5}
+    reads           : ${params.reads}
+    asfile          : ${params.asfile}
+    model           : ${params.model}
+    kit             : ${params.kit}
+    samplesheet     : ${params.samplesheet}
+    bed             : ${params.bed}
+    outdir          : ${params.outdir}
+    ===============================
+""".stripIndent()
+
 // 
 def showHelp() {
         log.info """
