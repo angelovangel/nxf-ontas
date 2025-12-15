@@ -21,9 +21,10 @@ log.info """
     reads           : ${params.reads}
     asfile          : ${params.asfile}
     model           : ${params.model}
+    ref             : ${params.ref}
+    bed             : ${params.bed}
     kit             : ${params.kit}
     samplesheet     : ${params.samplesheet}
-    bed             : ${params.bed}
     outdir          : ${params.outdir}
     ===============================
 """.stripIndent()
