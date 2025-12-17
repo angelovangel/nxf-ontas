@@ -223,6 +223,7 @@ function filterTable() {
     const selectedSamples = $('#sampleFilter').val() || [];
     const selectedRegions = $('#regionFilter').val() || [];
     const table = document.getElementById('dataTable');
+    if (!table) return;
     const rows = table.querySelectorAll('tbody tr');
     rows.forEach(row => {
         const sample = row.getAttribute('data-sample');
