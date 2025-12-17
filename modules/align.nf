@@ -67,7 +67,8 @@ process BEDTOOLS_COMPLEMENT {
 
     script:
     """
-    bedtools complement -i ${bed} -g ${genome} > ${bed.simpleName}.complement.bed
+    sort -k1,1 -k2,2n ${bed} > ${bed.simpleName}.sorted.bed
+    bedtools complement -i ${bed.simpleName}.sorted.bed -g ${genome} > ${bed.simpleName}.complement.bed
     """
 }
 
