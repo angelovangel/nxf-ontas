@@ -134,15 +134,21 @@ workflow report {
     RUN_INFO( ch_reads.filter{ it.name.endsWith('.bam') }.first() )
     READ_STATS(ch_reads)
     
+    // no alignment, so empty files are given to REPORT
+    new File("${workflow.workDir}/empty.hist.tsv").text = ''
+    new File("${workflow.workDir}/empty.bedcov.tsv").text = ''
+    new File("${workflow.workDir}/empty.bedcov_compl.tsv").text = ''
+    new File("${workflow.workDir}/empty.flagstat.json").text = '{}'
+    
     REPORT(
         RUN_INFO.out.ifEmpty(empty_runinfo),
         ch_wf_properties,
         READ_STATS.out.collect(),
         ch_ref_stats,
-        Channel.fromPath('./work/empty.hist.tsv', type: 'file'),
-        Channel.fromPath('./work/empty.bedcov.tsv', type: 'file'),
-        Channel.fromPath('./work/empty.bedcov_compl.tsv', type: 'file'),
-        Channel.fromPath('./work/empty.flagstat.json', type: 'file'),
+        Channel.fromPath("${workflow.workDir}/empty.hist.tsv", type: 'file'),
+        Channel.fromPath("${workflow.workDir}/empty.bedcov.tsv", type: 'file'),
+        Channel.fromPath("${workflow.workDir}/empty.bedcov_compl.tsv", type: 'file'),
+        Channel.fromPath("${workflow.workDir}/empty.flagstat.json", type: 'file'),
     )
 }
 
