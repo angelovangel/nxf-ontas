@@ -1,0 +1,33 @@
+#!/usr/bin/env nextflow
+
+process CLAIR3 {
+
+    container 'docker.io/hkubal/clair3:latest'
+
+    publishDir "${params.outdir}/03-variants", mode: 'copy'
+    tag "${bam.simpleName}"
+
+    input:
+    tuple path(bam), path(bai), path(ref), path(bedfile)
+
+    output:
+    tuple path("${bam.simpleName}.variants.vcf"), path("${bam.simpleName}.variants.vcf.tbi")
+
+    script:
+    def model = "${params.clair3_model}"
+    """
+    samtools faidx $ref
+
+    /opt/bin/run_clair3.sh \
+    --bam_fn=$bam \
+    --ref_fn=$ref \
+    --bed_fn=$bedfile \
+    --platform="ont" \
+    --model_path="/opt/models/$model" \
+    --threads=8 \
+    --output="clair3_output"
+
+    mv clair3_output/merge_output.vcf.gz ${bam.simpleName}.variants.vcf
+    mv clair3_output/merge_output.vcf.gz.tbi ${bam.simpleName}.variants.vcf.tbi
+    """ 
+}

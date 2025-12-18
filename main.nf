@@ -1,5 +1,6 @@
 include {DORADO_BASECALL; DORADO_BASECALL_BARCODING} from './modules/basecall.nf'
 include {DORADO_ALIGN; MAKE_BEDFILE; BEDTOOLS_COV; BEDTOOLS_COMPLEMENT; SAMTOOLS_BEDCOV; REF_STATS} from './modules/align.nf'
+include {CLAIR3} from './modules/clair3.nf'
 include {MERGE_READS; READ_STATS} from './modules/reads.nf'
 include {RUN_INFO} from './modules/runinfo.nf'
 include {REPORT} from './modules/report.nf'
@@ -111,18 +112,15 @@ workflow report {
     // Calc ref stats if ref exists, else empty
     if (params.ref) {
         REF_STATS(Channel.fromPath(params.ref))
-        ch_ref_stats = REF_STATS.out.ch_ref_stats
-        
+        ch_ref_stats = REF_STATS.out.ch_ref_stats       
     } else {
         ch_ref_stats = Channel.fromPath(empty_refstats)
     }
 
     if (params.reads) {
-        
         if ( file(params.reads).isDirectory() ) {
             pattern = "*.{bam,fastq,fastq.gz,fq,fq.gz}"
             ch_reads = Channel.fromPath(params.reads + "/" + pattern, type: 'file', checkIfExists: true)
-            
         } else {
             ch_reads = Channel.fromPath(params.reads, checkIfExists: true)        
         }
@@ -134,21 +132,16 @@ workflow report {
     RUN_INFO( ch_reads.filter{ it.name.endsWith('.bam') }.first() )
     READ_STATS(ch_reads)
     
-    // no alignment, so empty files are given to REPORT
-    new File("${workflow.workDir}/empty.hist.tsv").text = ''
-    new File("${workflow.workDir}/empty.bedcov.tsv").text = ''
-    new File("${workflow.workDir}/empty.bedcov_compl.tsv").text = ''
-    new File("${workflow.workDir}/empty.flagstat.json").text = '{}'
-    
     REPORT(
         RUN_INFO.out.ifEmpty(empty_runinfo),
         ch_wf_properties,
         READ_STATS.out.collect(),
         ch_ref_stats,
-        Channel.fromPath("${workflow.workDir}/empty.hist.tsv", type: 'file'),
-        Channel.fromPath("${workflow.workDir}/empty.bedcov.tsv", type: 'file'),
-        Channel.fromPath("${workflow.workDir}/empty.bedcov_compl.tsv", type: 'file'),
-        Channel.fromPath("${workflow.workDir}/empty.flagstat.json", type: 'file'),
+        // no need to actually create the empty files, this is handled by REPORT defs
+        Channel.fromPath("empty_hist", type: 'file'),
+        Channel.fromPath("empty_bedcov", type: 'file'),
+        Channel.fromPath("empty_bedcov_compl", type: 'file'),
+        Channel.fromPath("empty_flagstat", type: 'file'),
     )
 }
 
@@ -158,12 +151,10 @@ workflow {
 
     // If 'reads' parameter is provided create a channel from that path.
     // also possible to pass a folder with reads, every read is one sample
-    if (params.reads) {
-        
+    if (params.reads) {        
         if ( file(params.reads).isDirectory() ) {
             pattern = "*.{bam,fastq,fastq.gz,fq,fq.gz}"
-            ch_reads = Channel.fromPath(params.reads + "/" + pattern, type: 'file', checkIfExists: true)
-            
+            ch_reads = Channel.fromPath(params.reads + "/" + pattern, type: 'file', checkIfExists: true)           
         } else {
             ch_reads = Channel.fromPath(params.reads, checkIfExists: true)        
         }
@@ -196,6 +187,15 @@ workflow {
     .combine( BEDTOOLS_COMPLEMENT(ch_bedfile, REF_STATS.out.ch_genome) )
     | SAMTOOLS_BEDCOV
 
+    // test clair3
+    if (params.variants) {
+        DORADO_ALIGN.out
+        .combine( ch_ref )
+        .combine( ch_bedfile )
+        //.view()
+        | CLAIR3
+    }
+    
     REPORT(
         RUN_INFO.out.ifEmpty(empty_runinfo),
         ch_wf_properties,

@@ -23,7 +23,7 @@ See also [workflow diagram](https://angelovangel.github.io/nxf-alignment/assets/
 For an adaptive sampling run, basecalling is done for the accepted reads based on the decision file produced by MinKNOW.
 
 ```bash
-nextflow run main.nf \
+nextflow run angelovangel/nxf-alignment \
   --pod5 /path/to/pod5/dir \
   --asfile /path/to/AS_decisions.csv # optional
   --model hac \
@@ -33,7 +33,7 @@ nextflow run main.nf \
 #### Barcoded run (Basecalling + Alignment)
 For a barcoded run, provide a [samplesheet](#sample-sheet-barcoded-runs) and kit name
 ```bash
-nextflow run main.nf \
+nextflow run angelovangel/nxf-alignment \
   --pod5 /path/to/pod5/dir \
   --model hac,5mC_5hmC \
   --bed /path/to/regions.bed
@@ -46,7 +46,7 @@ nextflow run main.nf \
 If the basecalling has been performed before, the pipeline can be run with the `--reads` parameter. The reads can be in any HTS format, a directory of reads can also be given.
 
 ```bash
-nextflow run main.nf \
+nextflow run angelovangel/nxf-alignment \
   --reads /path/to/reads.bam \ # can be also a directory with reads
   --ref /path/to/ref.fasta \
   --bedfile /path/to/regions.bed
@@ -55,7 +55,7 @@ nextflow run main.nf \
 Basecalling (for single sample and barcoded runs) can also be performed without alignment, using the `-entry` parameter.
 `-entry basecall` will do basecalling (and evt demultiplexing), `-entry report` will do basecalling + report
 ```bash
-nextflow run main.nf \
+nextflow run angelovangel/nxf-alignment \
     --pod5 /path/to/pod5/dir \
     --model hac \
     --kit SQK-RBK114-96 # for barcoded runs only
