@@ -1,6 +1,7 @@
 let sortDirection = {};
 let readstatsSortDirection = {};
 let samtoolsSortDirection = {};
+let variantsSortDirection = {};
 
 function downloadCSV(csvContent, filename) {
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -36,7 +37,7 @@ function exportReadstatsToCSV() {
             csv.push(safeCols.join(','));
         }
     });
-    downloadCSV(csv.join('\\n'), 'readstats_export.csv');
+    downloadCSV(csv.join('\n'), 'readstats_export.csv');
 }
 
 function exportCoverageToCSV() {
@@ -60,7 +61,7 @@ function exportCoverageToCSV() {
             csv.push(safeCols.join(','));
         }
     });
-    downloadCSV(csv.join('\\n'), 'coverage_breadth_export.csv');
+    downloadCSV(csv.join('\n'), 'coverage_breadth_export.csv');
 }
 
 function exportSamtoolsToCSV() {
@@ -87,25 +88,54 @@ function exportSamtoolsToCSV() {
             csv.push(safeCols.join(','));
         }
     });
-    downloadCSV(csv.join('\\n'), 'coverage_stats_export.csv');
+    downloadCSV(csv.join('\n'), 'coverage_stats_export.csv');
+}
+
+function exportVariantsToCSV() {
+    const table = document.getElementById('variantsTable');
+    if (!table) { alert('Variants table not found.'); return; }
+    let csv = [];
+    const headers = ['Sample', 'Total_Variants', 'PASS_Variants', 'SNPs', 'Indels'];
+    csv.push(headers.join(','));
+    const dataRows = table.querySelectorAll('tbody tr');
+    dataRows.forEach(row => {
+        if (row.style.display !== 'none') {
+            const cols = [
+                row.getAttribute('data-sample'),
+                row.getAttribute('data-total'), row.getAttribute('data-pass'),
+                row.getAttribute('data-snp'), row.getAttribute('data-indel')
+            ];
+            const safeCols = cols.map(text => {
+                if (!text) return "";
+                text = text.trim().replace(/,/g, '');
+                if (text.includes('"')) { text = '"' + text.replace(/"/g, '""') + '"'; }
+                return text;
+            });
+            csv.push(safeCols.join(','));
+        }
+    });
+    downloadCSV(csv.join('\n'), 'variants_export.csv');
 }
 
 $(document).ready(function () {
     $('#sampleFilter').select2({ placeholder: "Filter samples...", allowClear: true, closeOnSelect: true })
-        .on('change', function () { filterTable(); filterReadstatsTable(); filterSamtoolsTable(); });
+        .on('change', function () { filterTable(); filterReadstatsTable(); filterSamtoolsTable(); filterVariantsTable(); });
     $('#regionFilter').select2({ placeholder: "Filter regions...", allowClear: true, closeOnSelect: true })
         .on('change', filterTable);
 
     filterTable();
     filterReadstatsTable();
     filterSamtoolsTable();
+    filterVariantsTable();
 
     sortDirection[0] = 'desc';
     readstatsSortDirection[0] = 'desc';
     samtoolsSortDirection[0] = 'desc';
+    variantsSortDirection[0] = 'desc';
     sortTable(0);
     sortReadstatsTable(0);
     sortSamtoolsTable(0);
+    sortVariantsTable(0);
 });
 
 function sortReadstatsTable(columnIndex) {
@@ -232,4 +262,47 @@ function filterTable() {
         const showRegion = selectedRegions.length === 0 || selectedRegions.includes(region);
         row.style.display = (showSample && showRegion) ? '' : 'none';
     });
+}
+
+function filterVariantsTable() {
+    const selectedSamples = $('#sampleFilter').val() || [];
+    const table = document.getElementById('variantsTable');
+    if (!table) return;
+    const rows = table.querySelectorAll('tbody tr');
+    rows.forEach(row => {
+        const sample = row.getAttribute('data-sample');
+        const showSample = selectedSamples.length === 0 || selectedSamples.includes(sample);
+        row.style.display = showSample ? '' : 'none';
+    });
+}
+
+function sortVariantsTable(columnIndex) {
+    const table = document.getElementById('variantsTable');
+    if (!table) return;
+    const tbody = table.tBodies[0];
+    const rows = Array.from(tbody.querySelectorAll('tr'));
+    variantsSortDirection[columnIndex] = variantsSortDirection[columnIndex] === 'asc' ? 'desc' : 'asc';
+    const isAsc = variantsSortDirection[columnIndex] === 'asc';
+
+    const headers = table.querySelectorAll('th.sortable');
+    headers.forEach(h => h.classList.remove('asc', 'desc'));
+    if (headers[columnIndex]) headers[columnIndex].classList.add(isAsc ? 'asc' : 'desc');
+
+    rows.sort((a, b) => {
+        const dataAttrMap = {
+            0: 'sample',
+            1: 'total', 2: 'pass',
+            3: 'snp', 4: 'indel'
+        };
+        const dataKey = dataAttrMap[columnIndex];
+        if (columnIndex === 0) {
+            const aVal = a.getAttribute('data-sample');
+            const bVal = b.getAttribute('data-sample');
+            return isAsc ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+        }
+        let aVal = parseFloat(a.getAttribute('data-' + dataKey));
+        let bVal = parseFloat(b.getAttribute('data-' + dataKey));
+        return isAsc ? aVal - bVal : bVal - aVal;
+    });
+    rows.forEach(row => tbody.appendChild(row));
 }

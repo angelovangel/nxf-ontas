@@ -10,6 +10,7 @@ from pathlib import Path
 from datetime import datetime
 import csv
 import json
+import gzip
 
 def format_si(num):
     """Format number with SI suffix (K, M, G, T, P)"""
@@ -114,6 +115,59 @@ def parse_flagstat_file(filepath):
             }
     except Exception as e:
         print(f"Error parsing flagstat file {filepath}: {e}", file=sys.stderr)
+        return None
+
+def parse_vcf_file(filepath):
+    """Parse a VCF file and return variant statistics. Handles gzipped VCFs."""
+    stats = {
+        'total': 0,
+        'snp': 0,
+        'indel': 0,
+        'pass': 0
+    }
+    
+    try:
+        # Check if file is gzipped by reading magic number
+        with open(filepath, 'rb') as f:
+            is_gzipped = f.read(2) == b'\x1f\x8b'
+        
+        open_func = gzip.open if is_gzipped else open
+        
+        with open_func(filepath, 'rt') as f:
+            for line in f:
+                if line.startswith('#'):
+                    continue
+                
+                stats['total'] += 1
+                parts = line.strip().split('\t')
+                if len(parts) < 8:
+                    continue
+                
+                # Filter status is column 7 (0-indexed 6)
+                if parts[6] == 'PASS':
+                    stats['pass'] += 1
+                
+                # REF is col 4, ALT is col 5
+                ref = parts[3]
+                alt = parts[4]
+                
+                # Check for multiple alts
+                alts = alt.split(',')
+                
+                is_snp = True
+                for a in alts:
+                    if len(ref) != len(a):
+                        is_snp = False
+                        break
+                
+                if is_snp:
+                    stats['snp'] += 1
+                else:
+                    stats['indel'] += 1
+                    
+        return stats
+    except Exception as e:
+        print(f"Error parsing VCF file {filepath}: {e}", file=sys.stderr)
         return None
 
 def parse_runinfo_csv(filepath):
@@ -392,6 +446,54 @@ def render_samtools_table(samtools_data):
     """
     return html
 
+def render_variants_table(variants_data):
+    """Render the Variant Statistics table"""
+    if not variants_data:
+        return ""
+
+    html = """
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+        <h3 style="margin: 0; font-size: 1.1em; color: #374151;">Variants</h3>
+        <button class="export-btn" onclick="exportVariantsToCSV()">Export CSV</button>
+      </div>
+      <div class="table-container" style="margin-bottom: 30px; position: relative;">
+        <table id="variantsTable">
+          <thead>
+            <tr>
+              <th class="sample-col sortable" onclick="sortVariantsTable(0)">Sample</th>
+              <th style="text-align: right;" class="sortable" onclick="sortVariantsTable(1)">Total Variants</th>
+              <th style="text-align: right;" class="sortable" onclick="sortVariantsTable(2)">PASS Variants</th>
+              <th style="text-align: right;" class="sortable" onclick="sortVariantsTable(3)">SNPs</th>
+              <th style="text-align: right;" class="sortable" onclick="sortVariantsTable(4)">Indels</th>
+            </tr>
+          </thead>
+          <tbody>
+    """
+    
+    for sample_name in sorted(variants_data.keys()):
+        stats = variants_data[sample_name]
+        
+        html += f"""
+            <tr data-sample="{sample_name.lower()}"
+                data-total="{stats['total']}"
+                data-pass="{stats['pass']}"
+                data-snp="{stats['snp']}"
+                data-indel="{stats['indel']}">
+              <td class="sample-col">{sample_name}</td>
+              <td style="text-align: right;">{stats['total']:,}</td>
+              <td style="text-align: right;">{stats['pass']:,}</td>
+              <td style="text-align: right;">{stats['snp']:,}</td>
+              <td style="text-align: right;">{stats['indel']:,}</td>
+            </tr>
+        """
+        
+    html += """
+          </tbody>
+        </table>
+      </div>
+    """
+    return html
+
 def render_coverage_table(samples_data, genes):
     """Render the Coverage Statistics table"""
     # Don't render if there's no data or all samples are empty
@@ -466,7 +568,7 @@ def render_coverage_table(samples_data, genes):
     """
     return html
 
-def generate_html_report(samples_data, readstats_data, run_info, wf_info, ref_stats, samtools_stats, output_file):
+def generate_html_report(samples_data, readstats_data, run_info, wf_info, ref_stats, samtools_stats, variants_data, output_file):
     """Generate HTML report from multiple samples"""
     
     # Pre-processing
@@ -490,6 +592,7 @@ def generate_html_report(samples_data, readstats_data, run_info, wf_info, ref_st
     if readstats_data: all_sample_names.update(readstats_data.keys())
     if samples_data: all_sample_names.update(samples_data.keys())
     if samtools_stats: all_sample_names.update(samtools_stats.keys())
+    if variants_data: all_sample_names.update(variants_data.keys())
     
     sample_names = sorted(list(all_sample_names))
     sample_options = "".join([f'<option value="{name.lower()}">{name}</option>' for name in sample_names])
@@ -505,6 +608,7 @@ def generate_html_report(samples_data, readstats_data, run_info, wf_info, ref_st
     stats_cards = render_stats_cards(readstats_data, samples_data, genes, region_totals, ref_stats)
     readstats_table = render_readstats_table(readstats_data)
     samtools_table = render_samtools_table(samtools_stats)
+    variants_table = render_variants_table(variants_data)
     coverage_table = render_coverage_table(samples_data, genes)
     
     # Assemble HTML
@@ -542,6 +646,7 @@ def generate_html_report(samples_data, readstats_data, run_info, wf_info, ref_st
       
       {readstats_table}
       {samtools_table}
+      {variants_table}
       {coverage_table}
     </div>
   </div>
@@ -565,6 +670,7 @@ def main():
     parser.add_argument('--bedcov', nargs='*', default=[], help='One or more reads.bedcov.tsv files')
     parser.add_argument('--bedcov-compl', nargs='*', default=[], help='One or more reads.bedcov.compl.tsv files')
     parser.add_argument('--flagstat', nargs='*', default=[], help='One or more .flagstat.json files')
+    parser.add_argument('--variants', nargs='*', default=[], help='One or more .vcf files')
     parser.add_argument('-o', '--output', required=True, help='Output HTML file')
     
     args = parser.parse_args()
@@ -572,6 +678,7 @@ def main():
     samples_data = {}
     readstats_data = {}
     samtools_stats = {}
+    variants_data = {}
     run_info = [] 
     wf_info = []
     ref_stats = []
@@ -601,6 +708,14 @@ def main():
         sample_name = path.name.replace('.readstats.tsv', '')
         print(f"Processing stats {readstats_file} (Sample: {sample_name})...")
         readstats_data[sample_name] = parse_readstats_file(readstats_file)
+
+    for vcf_file in args.variants:
+        path = Path(vcf_file)
+        sample_name = path.name.replace('.variants.vcf', '').replace('.vcf', '')
+        print(f"Processing variants {vcf_file} (Sample: {sample_name})...")
+        result = parse_vcf_file(vcf_file)
+        if result is not None:
+            variants_data[sample_name] = result
 
     
     # Actually, sample naming might be simpler: assuming standard nextflow output naming
@@ -643,7 +758,7 @@ def main():
             if name not in samtools_stats: samtools_stats[name] = {}
             samtools_stats[name]['flagstat'] = result
 
-    generate_html_report(samples_data, readstats_data, run_info, wf_info, ref_stats, samtools_stats, args.output)
+    generate_html_report(samples_data, readstats_data, run_info, wf_info, ref_stats, samtools_stats, variants_data, args.output)
 
 if __name__ == "__main__":
     main()

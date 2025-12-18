@@ -146,6 +146,7 @@ workflow report {
         Channel.fromPath("empty_bedcov", type: 'file'),
         Channel.fromPath("empty_bedcov_compl", type: 'file'),
         Channel.fromPath("empty_flagstat", type: 'file'),
+        Channel.fromPath("empty_variants", type: 'file'),
     )
 }
 
@@ -209,5 +210,6 @@ workflow {
         SAMTOOLS_BEDCOV.out.ch_bedcov.collect(),
         SAMTOOLS_BEDCOV.out.ch_bedcov_complement.collect(),
         SAMTOOLS_BEDCOV.out.ch_flagstat.collect(),
+        params.variants ? CLAIR3.out.map{ it[0] }.collect() : Channel.fromPath("empty_variants", type: 'file')
     )  
 }
