@@ -2,7 +2,8 @@
 
 process CLAIR3 {
 
-    container 'docker.io/hkubal/clair3:latest'
+    //container 'docker.io/hkubal/clair3:latest'
+    container 'docker.io/hkubal/clair3-gpu:latest'
 
     publishDir "${params.outdir}/03-variants", mode: 'copy'
     tag "${bam.simpleName}"

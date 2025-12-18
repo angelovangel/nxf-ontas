@@ -25,6 +25,8 @@ log.info """
     bed             : ${params.bed}
     kit             : ${params.kit}
     samplesheet     : ${params.samplesheet}
+    variants        : ${params.variants}
+    clair3_model    : ${params.clair3_model}
     outdir          : ${params.outdir}
     ===============================
 """.stripIndent()
@@ -49,10 +51,12 @@ Processing options:
     --kit <name>           Barcoding kit name (required with --samplesheet)
     --samplesheet <file>   CSV with columns: sample,barcode (required with --kit)
     --bed <file>           BED file with regions (auto-generated from reference if omitted)
+    --variants             Enable variant calling with Clair3
+    --clair3_model <name>  Clair3 model to use (default: r1041_e82_400bps_hac_v500)
 
 Output & config:
     --outdir <name>        Output directory name (default: results)
-    -profile <name>        Nextflow profile (test)
+    -profile <name>        Nextflow profile (standard, test, singularity)
     -entry <name>          Workflow entry point (basecall - basecalling only, report - basecalling + report)
 
 """.stripIndent()
