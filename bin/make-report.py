@@ -117,8 +117,8 @@ def parse_flagstat_file(filepath):
         print(f"Error parsing flagstat file {filepath}: {e}", file=sys.stderr)
         return None
 
-def parse_vcf_file(filepath):
-    """Parse a VCF file and return variant statistics. Handles gzipped VCFs."""
+def parse_bcftools_query(filepath):
+    """Parse a bcftools query output file and return variant statistics."""
     stats = {
         'total': 0,
         'snp': 0,
@@ -127,47 +127,37 @@ def parse_vcf_file(filepath):
     }
     
     try:
-        # Check if file is gzipped by reading magic number
-        with open(filepath, 'rb') as f:
-            is_gzipped = f.read(2) == b'\x1f\x8b'
-        
-        open_func = gzip.open if is_gzipped else open
-        
-        with open_func(filepath, 'rt') as f:
+        with open(filepath, 'r') as f:
             for line in f:
-                if line.startswith('#'):
+                parts = line.strip().split('\t')
+                if len(parts) < 6:
+                    continue
+                
+                # Format: CHROM POS REF ALT TYPE FILTER
+                # ref = parts[2]
+                # alt = parts[3]
+                var_type = parts[4]
+                filter_status = parts[5]
+
+                # Skip non-variants
+                if var_type == 'REF':
                     continue
                 
                 stats['total'] += 1
-                parts = line.strip().split('\t')
-                if len(parts) < 8:
-                    continue
                 
-                # Filter status is column 7 (0-indexed 6)
-                if parts[6] == 'PASS':
+                if filter_status == 'PASS':
                     stats['pass'] += 1
                 
-                # REF is col 4, ALT is col 5
-                ref = parts[3]
-                alt = parts[4]
-                
-                # Check for multiple alts
-                alts = alt.split(',')
-                
-                is_snp = True
-                for a in alts:
-                    if len(ref) != len(a):
-                        is_snp = False
-                        break
-                
-                if is_snp:
+                if var_type == 'SNP':
                     stats['snp'] += 1
-                else:
+                elif var_type == 'INDEL':
                     stats['indel'] += 1
+                # OTHER types are counted in total but not specifically as snp/indel here, 
+                # or could be mapped to one. Assuming basic types for now.
                     
         return stats
     except Exception as e:
-        print(f"Error parsing VCF file {filepath}: {e}", file=sys.stderr)
+        print(f"Error parsing query file {filepath}: {e}", file=sys.stderr)
         return None
 
 def parse_runinfo_csv(filepath):
@@ -670,7 +660,7 @@ def main():
     parser.add_argument('--bedcov', nargs='*', default=[], help='One or more reads.bedcov.tsv files')
     parser.add_argument('--bedcov-compl', nargs='*', default=[], help='One or more reads.bedcov.compl.tsv files')
     parser.add_argument('--flagstat', nargs='*', default=[], help='One or more .flagstat.json files')
-    parser.add_argument('--variants', nargs='*', default=[], help='One or more .vcf files')
+    parser.add_argument('--vcf-query', nargs='*', default=[], help='One or more .query files from bcftools query')
     parser.add_argument('-o', '--output', required=True, help='Output HTML file')
     
     args = parser.parse_args()
@@ -709,11 +699,11 @@ def main():
         print(f"Processing stats {readstats_file} (Sample: {sample_name})...")
         readstats_data[sample_name] = parse_readstats_file(readstats_file)
 
-    for vcf_file in args.variants:
-        path = Path(vcf_file)
-        sample_name = path.name.replace('.variants.vcf', '').replace('.vcf', '')
-        print(f"Processing variants {vcf_file} (Sample: {sample_name})...")
-        result = parse_vcf_file(vcf_file)
+    for query_file in args.vcf_query:
+        path = Path(query_file)
+        sample_name = path.name.replace('.query', '').replace('.vcf', '').replace('.variants', '')
+        print(f"Processing query {query_file} (Sample: {sample_name})...")
+        result = parse_bcftools_query(query_file)
         if result is not None:
             variants_data[sample_name] = result
 

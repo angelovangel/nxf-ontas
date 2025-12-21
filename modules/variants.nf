@@ -32,3 +32,24 @@ process CLAIR3 {
     mv clair3_output/merge_output.vcf.gz.tbi ${bam.simpleName}.variants.vcf.tbi
     """ 
 }
+
+process VCF_STATS {
+    
+    container 'docker.io/staphb/bcftools:latest'
+    publishDir "${params.outdir}/03-variants", mode: 'copy'
+    tag "${bam.simpleName}"
+
+    input:
+    tuple path(vcf), path(vcf_tbi)
+
+    output:
+    path("${vcf.simpleName}.query")
+
+    script:
+    """
+    bcftools query -f '%CHROM\t%POS\t%REF\t%ALT\t%TYPE\t%FILTER\n' $vcf > ${vcf.simpleName}.query
+
+    """
+}
+    
+    

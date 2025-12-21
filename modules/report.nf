@@ -27,7 +27,7 @@ process REPORT {
     def bedcov_arg = bedcov.name.contains('empty_bedcov') ? '' : "--bedcov ${bedcov}"
     def bedcov_compl_arg = bedcov_complement.name.contains('empty_bedcov_compl') ? '' : "--bedcov-compl ${bedcov_complement}"
     def flagstat_arg = flagstat.name.contains('empty_flagstat') ? '' : "--flagstat ${flagstat}"
-    def variants_arg = variants.name.contains('empty_variants') ? '' : "--variants ${variants}"
+    def variants_arg = variants.name.contains('empty_variants') ? '' : "--vcf-query ${variants}"
     """
     make-report.py \
         --runinfo $runinfo \
