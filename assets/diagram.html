@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -19,7 +20,7 @@
         }
 
         .container {
-            max-width: 800px;
+            max-width: 1200px;
             margin: 0 auto;
         }
 
@@ -67,6 +68,7 @@
             display: flex;
             flex-direction: column;
             align-items: center;
+            height: 100%;
         }
 
         .branch-header {
@@ -80,9 +82,17 @@
             width: 100%;
         }
 
-        .branch-header.blue { background: #3b82f6; }
-        .branch-header.green { background: #10b981; }
-        .branch-header.orange { background: #f97316; }
+        .branch-header.blue {
+            background: #3b82f6;
+        }
+
+        .branch-header.green {
+            background: #10b981;
+        }
+
+        .branch-header.orange {
+            background: #f97316;
+        }
 
         .branch-connector {
             width: 2px;
@@ -90,9 +100,17 @@
             margin: 0 auto;
         }
 
-        .branch-connector.blue { background: #93c5fd; }
-        .branch-connector.green { background: #6ee7b7; }
-        .branch-connector.orange { background: #fdba74; }
+        .branch-connector.blue {
+            background: #93c5fd;
+        }
+
+        .branch-connector.green {
+            background: #6ee7b7;
+        }
+
+        .branch-connector.orange {
+            background: #fdba74;
+        }
 
         .branch-card {
             background: white;
@@ -101,20 +119,39 @@
             padding: 1rem;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
             width: 100%;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
         }
 
-        .branch-card.blue { border-color: #3b82f6; }
-        .branch-card.green { border-color: #10b981; }
-        .branch-card.orange { border-color: #f97316; }
+        .branch-card.blue {
+            border-color: #3b82f6;
+        }
+
+        .branch-card.green {
+            border-color: #10b981;
+        }
+
+        .branch-card.orange {
+            border-color: #f97316;
+        }
 
         .branch-card h3 {
             font-size: 1rem;
             margin-bottom: 0.75rem;
         }
 
-        .branch-card.blue h3 { color: #1e40af; }
-        .branch-card.green h3 { color: #047857; }
-        .branch-card.orange h3 { color: #c2410c; }
+        .branch-card.blue h3 {
+            color: #1e40af;
+        }
+
+        .branch-card.green h3 {
+            color: #047857;
+        }
+
+        .branch-card.orange h3 {
+            color: #c2410c;
+        }
 
         .branch-card-content {
             font-size: 0.875rem;
@@ -239,17 +276,20 @@
         }
 
         @media (max-width: 768px) {
-            .branches, .two-col-grid {
+
+            .branches,
+            .two-col-grid {
                 grid-template-columns: 1fr;
             }
         }
     </style>
 </head>
+
 <body>
     <div class="container">
         <h1>nxf-alignment workflow</h1>
         <p class="subtitle">Parameter-driven execution paths</p>
-        
+
         <!-- Entry Point -->
         <div class="entry-point">-entry parameter</div>
         <div class="connector"></div>
@@ -265,7 +305,9 @@
                     <div class="branch-card-content">
                         <div class="item">
                             <svg class="icon" fill="none" stroke="#3b82f6" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4">
+                                </path>
                             </svg>
                             <span>Requires: --pod5</span>
                         </div>
@@ -284,9 +326,11 @@
                     <div class="branch-card-content">
                         <div class="item">
                             <svg class="icon" fill="none" stroke="#10b981" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4">
+                                </path>
                             </svg>
-                            <span>Requires: --pod5</span>
+                            <span>Requires: --pod5 (or --reads)</span>
                         </div>
                         <div class="note">Optional: --asfile, --model</div>
                         <div class="note">Barcoded: --kit and --samplesheet</div>
@@ -303,12 +347,14 @@
                     <div class="branch-card-content">
                         <div class="item">
                             <svg class="icon" fill="none" stroke="#f97316" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
+                                </path>
                             </svg>
-                            <span>Requires: --pod5, --ref</span>
+                            <span>Requires: --pod5 (or --reads), --ref</span>
                         </div>
-                        <div class="note" style="color:#c2410c;">Basecall + Align + Coverage + Report</div>
-                        <div class="note">Optional: --asfile, --model, --bed</div>
+                        <div class="note" style="color:#c2410c;">Basecall + Align + Variants + Coverage + Report</div>
+                        <div class="note">Optional: --asfile, --model, --bed, --variants</div>
                         <div class="note">Barcoded: --kit and --samplesheet</div>
                     </div>
                 </div>
@@ -316,11 +362,18 @@
         </div>
         <!-- Legend -->
         <div class="legend">
-            
+
             <ul>
-                <li>• <code>--kit</code> and <code>--samplesheet</code> must be used together</li>
+                <li>• <code>--kit</code> and <code>--samplesheet</code> must be used together (for ONT barcoded runs)
+                </li>
                 <li>• <code>--ref</code> is required for default workflow but not for basecall-only modes</li>
-                <li>• <code>--asfile</code> (adaptive sampling CSV) is optional for filtering reads during basecalling</li>
+                <li>• <code>--model</code> dorado basecalling model (default is 'fast')</li>
+                <li>• <code>--asfile</code> (adaptive sampling CSV) is optional for filtering reads during basecalling
+                <li>• <code>--variants</code> enables Clair3 variant calling</li>
+                <li>• <code>--clair3_platform</code> ont, hifi, ilmn (only when --variants is used)</li>
+                <li>• <code>--clair3_model</code> see list of models <a
+                        href="https://github.com/HKU-BAL/Clair3?tab=readme-ov-file#pre-trained-models">here</a> (only
+                    when --variants is used)</li>
             </ul>
         </div>
         <div class="legend"> </div>
@@ -328,7 +381,8 @@
         <div class="section">
             <div class="section-title">
                 <svg class="icon" fill="none" stroke="#f97316" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12M8 12h12m-7 5h7M3 7h.01M3 12h.01M3 17h.01"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M8 7h12M8 12h12m-7 5h7M3 7h.01M3 12h.01M3 17h.01"></path>
                 </svg>
                 Read Source (Default Workflow)
             </div>
@@ -356,7 +410,9 @@
         <div class="section">
             <div class="section-title">
                 <svg class="icon" fill="none" stroke="#8b5cf6" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z">
+                    </path>
                 </svg>
                 Barcoding Options
             </div>
@@ -384,7 +440,9 @@
         <div class="section">
             <div class="section-title">
                 <svg class="icon" fill="none" stroke="#3b82f6" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
+                    </path>
                 </svg>
                 BED File Handling
             </div>
@@ -404,6 +462,36 @@
             </div>
         </div>
 
+        <!-- Variant Calling Section -->
+        <div class="section">
+            <div class="section-title">
+                <svg class="icon" fill="none" stroke="#7c3aed" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4">
+                    </path>
+                </svg>
+                Variant Calling (Clair3)
+            </div>
+            <div class="two-col-grid">
+                <div class="info-card">
+                    <div class="info-card-title">If --variants provided:</div>
+                    <div class="info-card-content">
+                        <div>• Runs Clair3 variant calling</div>
+                        <div>• Requires --ref and --bed (or auto-bed)</div>
+                        <div>• Outputs VCF and statistics</div>
+                    </div>
+                </div>
+                <div class="info-card">
+                    <div class="info-card-title">Configuration Options:</div>
+                    <div class="info-card-content">
+                        <div>• <code>--clair3_platform</code>: ont (default)</div>
+                        <div>• <code>--clair3_model</code>: r1041_e82_400bps_hac_v500...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
     </div>
 </body>
+
 </html>

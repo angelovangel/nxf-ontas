@@ -16,6 +16,7 @@ process CLAIR3 {
 
     script:
     def model = "${params.clair3_model}"
+    def platform = "${params.clair3_platform}"
     """
     samtools faidx $ref
 
@@ -23,7 +24,7 @@ process CLAIR3 {
     --bam_fn=$bam \
     --ref_fn=$ref \
     --bed_fn=$bedfile \
-    --platform="ont" \
+    --platform=$platform \
     --model_path="/opt/models/$model" \
     --threads=8 \
     --output="clair3_output"

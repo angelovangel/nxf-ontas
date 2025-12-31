@@ -26,6 +26,7 @@ log.info """
     kit             : ${params.kit}
     samplesheet     : ${params.samplesheet}
     variants        : ${params.variants}
+    clair3_platform : ${params.clair3_platform}
     clair3_model    : ${params.clair3_model}
     outdir          : ${params.outdir}
     ===============================
@@ -52,7 +53,8 @@ Processing options:
     --samplesheet <file>   CSV with columns: sample,barcode (required with --kit)
     --bed <file>           BED file with regions (auto-generated from reference if omitted)
     --variants             Enable variant calling with Clair3
-    --clair3_model <name>  Clair3 model to use (default: r1041_e82_400bps_hac_v500)
+    --clair3_platform      Clair3 platform to use, only when --variants is specified (default: ONT)
+    --clair3_model <name>  Clair3 model to use, only when --variants is specified (default: r1041_e82_400bps_hac_v500)
 
 Output & config:
     --outdir <name>        Output directory name (default: results)

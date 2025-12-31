@@ -1,25 +1,26 @@
 # nxf-alignment
 
-A Nextflow workflow for basecalling, aligning, and analyzing long-read sequencing data (ONT).
+A Nextflow workflow for basecalling (ONT only), aligning, and variant calling for long-read sequencing data (ONT + HiFi).
 
 ## Features
 
-- **Basecalling**: Uses Dorado for basecalling with optional adaptive sampling support
-- **Alignment**: Aligns reads to a reference genome using Dorado aligner (modifications are preserved)
+- **Basecalling**: Uses Dorado for basecalling (and demultiplexing) with optional adaptive sampling support (ONT)
+- **Alignment**: Aligns reads to a reference genome using Dorado aligner (modifications are preserved, ONT or HiFi data)
 - **Coverage Analysis**: Calculates per-region coverage statistics with thresholds (1x, 10x, 20x, 30x)
-- **Interactive HTML Report**: Generates an interactive report with read statistics and coverage metrics
+- **Variant Calling**: Uses Clair3 for variant calling (ONT or HiFi data)
+- **Interactive HTML Report**: Generates an interactive report with read statistics, coverage and variants metrics
 
 ## Requirements
 
 - **Nextflow** >= 23.04
 - **Docker** 
-- **NVIDIA GPU** (for basecalling)
+- **NVIDIA GPU** (for basecalling and variants)
 
 ## Quick Start
 
 See also [workflow diagram](https://angelovangel.github.io/nxf-alignment/assets/diagram.html) for how parameter use determine the workflow path
 
-#### Basic Workflow (Basecalling + Alignment)
+#### Basic Workflow (Basecalling + Alignment + Variant Calling)
 For an adaptive sampling run, basecalling is done for the accepted reads based on the decision file produced by MinKNOW.
 
 ```bash
@@ -28,7 +29,8 @@ nextflow run angelovangel/nxf-alignment \
   --asfile /path/to/AS_decisions.csv # optional
   --model hac \
   --bed /path/to/regions.bed # optional, if provided the report contains coverage analysis per region from bed file 
-  --ref /path/to/ref.fasta
+  --ref /path/to/ref.fasta \
+  --variants
 ```
 #### Barcoded run (Basecalling + Alignment)
 For a barcoded run, provide a [samplesheet](#sample-sheet-barcoded-runs) and kit name
@@ -42,14 +44,15 @@ nextflow run angelovangel/nxf-alignment \
   --samplesheet /path/to/samplesheet.csv
 ```
 
-#### Skip Basecalling (Align Existing BAM/FASTQ)
+#### Skip Basecalling (Align Existing BAM/FASTQ + Variant Calling)
 If the basecalling has been performed before, the pipeline can be run with the `--reads` parameter. The reads can be in any HTS format, a directory of reads can also be given.
 
 ```bash
 nextflow run angelovangel/nxf-alignment \
   --reads /path/to/reads.bam \ # can be also a directory with reads
   --ref /path/to/ref.fasta \
-  --bedfile /path/to/regions.bed
+  --bedfile /path/to/regions.bed \
+  --variants
 ```
 #### Skip alignment (basecalling only)
 Basecalling (for single sample and barcoded runs) can also be performed without alignment, using the `-entry` parameter.
@@ -85,6 +88,14 @@ nextflow run angelovangel/nxf-alignment \
 | `samplesheet` | path | null | Sample sheet CSV with columns: `sample`, `barcode`. Required for barcoded runs |
 | `bed` | path | null | BED file with target regions (auto-generated from reference if not provided) |
 
+#### Profiles
+Predefined set of parameters for common use cases, use with `-profile`:
+
+| Profile | Description |
+|---------|-------------|
+| `standard` | Standard workflow with Docker GPU support |
+| `singularity` | Workflow with Singularity GPU support |
+| `revio` | Workflow optimized for HiFi Revio (use with `--reads` to skip basecalling)|
 
 ## Output Structure
 
@@ -98,6 +109,8 @@ results/
 │   └── reads.align.bam.bai    # BAM index
 ├── 02-coverage/
 │   └── reads.hist.tsv         # Coverage histogram
+├── 03-variants/
+│   └── reads.variants.vcf     # Variants
 └── nxf-alignment-report.html  # Workflow report
 ```
 
