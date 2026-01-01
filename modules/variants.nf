@@ -38,7 +38,7 @@ process VCF_STATS {
     
     container 'docker.io/staphb/bcftools:latest'
     publishDir "${params.outdir}/03-variants", mode: 'copy'
-    tag "${bam.simpleName}"
+    tag "${vcf.simpleName}"
 
     input:
     tuple path(vcf), path(vcf_tbi)
